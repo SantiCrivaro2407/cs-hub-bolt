@@ -3,19 +3,19 @@ import type { EstadoIssue, EstadoLoop, EstadoTicket, Etapa } from '@/lib/types';
 import { ETIQUETA_NIVEL, nivelHealth, type NivelHealth } from '@/lib/domain/health';
 
 const CLASES_NIVEL: Record<NivelHealth, string> = {
-  ok: 'border-emerald-200 bg-emerald-50 text-emerald-800',
-  warn: 'border-amber-200 bg-amber-50 text-amber-900',
-  risk: 'border-rose-200 bg-rose-50 text-rose-800',
+  ok: 'border-transparent bg-triage-progressing text-triage-progressing-fg',
+  warn: 'border-transparent bg-triage-watch text-triage-watch-fg',
+  risk: 'border-transparent bg-triage-support text-triage-support-fg',
 };
 
 const PUNTO_NIVEL: Record<NivelHealth, string> = {
-  ok: 'bg-emerald-500',
-  warn: 'bg-amber-500',
-  risk: 'bg-rose-500',
+  ok: 'bg-success',
+  warn: 'bg-warning',
+  risk: 'bg-destructive',
 };
 
 export function HealthChip({ total, delta, conEtiqueta = false }: { total: number | null; delta: number | null; conEtiqueta?: boolean }) {
-  if (total === null) return <span className="text-xs text-slate-500">Sin health</span>;
+  if (total === null) return <span className="text-xs text-muted-foreground">Sin health</span>;
   const nivel = nivelHealth(total);
   const Flecha = delta === null || delta === 0 ? Minus : delta > 0 ? ArrowUpRight : ArrowDownRight;
   return (
@@ -29,14 +29,15 @@ export function HealthChip({ total, delta, conEtiqueta = false }: { total: numbe
 }
 
 export function Pill({ children, tono = 'neutro' }: { children: React.ReactNode; tono?: 'neutro' | 'azul' | 'rojo' | 'verde' | 'ambar' }) {
+  // Estados suaves con la paleta triage del design system (igual que cs-hub-mvp).
   const clases = {
-    neutro: 'border-slate-200 bg-slate-100 text-slate-700',
-    azul: 'border-sky-200 bg-sky-50 text-sky-800',
-    rojo: 'border-rose-200 bg-rose-50 text-rose-700',
-    verde: 'border-emerald-200 bg-emerald-50 text-emerald-800',
-    ambar: 'border-amber-200 bg-amber-50 text-amber-900',
+    neutro: 'bg-triage-none text-triage-none-fg',
+    azul: 'bg-triage-insufficient text-triage-insufficient-fg',
+    rojo: 'bg-triage-support text-triage-support-fg',
+    verde: 'bg-triage-progressing text-triage-progressing-fg',
+    ambar: 'bg-triage-watch text-triage-watch-fg',
   }[tono];
-  return <span className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium ${clases}`}>{children}</span>;
+  return <span className={`inline-flex w-fit shrink-0 items-center whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ${clases}`}>{children}</span>;
 }
 
 export function EtapaBadge({ etapa }: { etapa: Etapa }) {
@@ -80,10 +81,14 @@ export function EstadoIssueBadge({ estado }: { estado: EstadoIssue }) {
   return <Pill tono={tono}>{estado}</Pill>;
 }
 
+// Sin logos reales: iniciales sobre un tinte suave del design system.
+const TINTES_AVATAR = ['bg-tutorial-getting-started', 'bg-tutorial-observations', 'bg-tutorial-reports', 'bg-tutorial-admin-workflows'];
+
 export function Avatar({ iniciales, tamano = 'md' }: { iniciales: string; tamano?: 'md' | 'lg' }) {
-  const clases = tamano === 'lg' ? 'h-14 w-14 text-lg' : 'h-10 w-10 text-sm';
+  const tinte = TINTES_AVATAR[[...iniciales].reduce((a, c) => a + c.charCodeAt(0), 0) % TINTES_AVATAR.length];
+  const clases = tamano === 'lg' ? 'h-12 w-12 text-base' : 'h-11 w-11 text-sm';
   return (
-    <div className={`flex ${clases} shrink-0 items-center justify-center rounded-xl bg-slate-900 font-semibold text-white`}>
+    <div aria-hidden className={`flex ${clases} shrink-0 items-center justify-center rounded-xl font-semibold text-foreground/80 ${tinte}`}>
       {iniciales}
     </div>
   );

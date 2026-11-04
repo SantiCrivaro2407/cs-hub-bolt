@@ -9,8 +9,9 @@ import { EstadoLoopBadge } from '@/components/ui/Insignias';
 import { useHub } from '@/context/HubContext';
 import { enviarEmail } from '@/lib/actions/email';
 import { simularSincronizacion } from '@/lib/actions/escuelas';
+import { miIntegracion, sincronizarGmail } from '@/lib/actions/integraciones';
 import { rutaEscuela } from '@/lib/domain/cartera';
-import { claveMes, nombreMes } from '@/lib/domain/dates';
+import { claveMes, fechaHora, nombreMes } from '@/lib/domain/dates';
 import { loopVencido, ordenarLoops } from '@/lib/domain/loops';
 import type { Escuela, Interaccion, TipoInteraccion } from '@/lib/types';
 
@@ -46,6 +47,7 @@ export function InteraccionesTab({ escuela }: { escuela: Escuela }) {
   const [nuevoEmail, setNuevoEmail] = useState(false);
 
   const contactosConEmail = datos.contactos.filter((c) => c.escuela_id === escuela.id && c.email);
+  const gmail = miIntegracion(ctx, 'gmail');
   const interacciones = useMemo(
     () =>
       datos.interacciones
@@ -63,20 +65,36 @@ export function InteraccionesTab({ escuela }: { escuela: Escuela }) {
 
   const sincronizar = async () => {
     setSincronizando(true);
-    await ejecutar(() => simularSincronizacion(ctx, escuela).then(() => undefined), 'Sincronización completada');
+    // Con Gmail conectado sincroniza de verdad; si no, mantiene la simulación de la demo.
+    await ejecutar(
+      () => (gmail ? sincronizarGmail().then((n) => [n === 0 ? 'No había emails nuevos con contactos' : `${n} emails nuevos registrados`]) : simularSincronizacion(ctx, escuela).then(() => undefined)),
+      'Sincronización completada',
+    );
     setSincronizando(false);
   };
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-3 rounded-xl border border-sky-200 bg-sky-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 rounded-2xl border border-border bg-muted/40 p-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
-          <Activity className="mt-0.5 h-4 w-4 shrink-0 text-sky-700" aria-hidden />
-          <p className="text-sm text-sky-900">Emails y reuniones se sincronizan automáticamente (simulado).</p>
+          <Activity className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+          {gmail ? (
+            <p className="text-sm">
+              Gmail conectado ({gmail.cuenta}) · {gmail.ultima_sync ? `última sincronización ${fechaHora(gmail.ultima_sync)}` : 'todavía sin sincronizar'}.
+              <span className="text-muted-foreground"> Solo se registran emails con los {contactosConEmail.length} contactos de esta escuela.</span>
+            </p>
+          ) : (
+            <p className="text-sm">
+              Los emails y reuniones con contactos se registran solos al conectar Gmail y Read AI.{' '}
+              <Enlace href="/integraciones" className="font-medium underline underline-offset-2">
+                Ir a Integraciones
+              </Enlace>
+            </p>
+          )}
         </div>
-        <Boton variante="secundario" onClick={sincronizar} disabled={sincronizando}>
+        <Boton variante="secundario" onClick={sincronizar} disabled={sincronizando} className="shrink-0">
           <RefreshCw className={`h-4 w-4 ${sincronizando ? 'animate-spin' : ''}`} aria-hidden />
-          Sincronizar ahora
+          {gmail ? 'Sincronizar ahora' : 'Simular (demo)'}
         </Boton>
       </div>
 

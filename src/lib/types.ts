@@ -8,6 +8,9 @@ export type TipoInteraccion =
   | 'ticket'
   | 'nota'
   | 'registro_interno';
+export type OrigenInteraccion = 'manual' | 'gmail' | 'readai';
+export type ProveedorIntegracion = 'gmail' | 'readai';
+export type EstadoIntegracion = 'conectada' | 'error' | 'desconectada';
 export type EstadoTicket = 'Nuevo' | 'En curso' | 'Resuelto';
 export type EstadoLoop = 'Open' | 'Waiting' | 'Ready to reply' | 'Closed';
 export type OrigenLoop = 'email' | 'reunion' | 'ticket' | 'manual';
@@ -125,6 +128,12 @@ export interface Interaccion {
   action_items: ActionItem[];
   loop_id: string | null;
   ticket_id: string | null;
+  // Registradas por las integraciones (opcionales: las filas viejas no las tienen).
+  origen?: OrigenInteraccion;
+  externo_id?: string | null;
+  de?: string | null;
+  para?: string[];
+  enlace?: string | null;
 }
 
 export interface Ticket {
@@ -179,6 +188,18 @@ export interface Issue {
   loop_id: string | null;
 }
 
+export interface Integracion {
+  id: string;
+  equipo_id: string;
+  proveedor: ProveedorIntegracion;
+  estado: EstadoIntegracion;
+  cuenta: string | null;
+  config: { token?: string };
+  ultima_sync: string | null;
+  ultimo_error: string | null;
+  creado: string;
+}
+
 export interface HubData {
   equipo: Equipo[];
   escuelas: Escuela[];
@@ -191,4 +212,5 @@ export interface HubData {
   loops: Loop[];
   loopEstados: LoopEstado[];
   issues: Issue[];
+  integraciones: Integracion[];
 }

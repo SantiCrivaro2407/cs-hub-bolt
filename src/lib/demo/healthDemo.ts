@@ -1,4 +1,3 @@
-import { CATEGORIAS_HEALTH } from '@/lib/domain/health';
 import type { EscuelaDemo } from '@/lib/demo/escuelasDemo';
 import type { HealthMetricas } from '@/lib/types';
 
@@ -84,7 +83,8 @@ export function healthDemo(e: EscuelaDemo, escuelaId: string, nuevoId: () => str
   return EDADES_EN_DIAS.map((edad) => {
     const total = totalEnEdad(e, edad);
     const puntajes = AJUSTE_CATEGORIA.map((ajuste) => Math.min(100, Math.max(0, Math.round(total + ajuste))));
-    const valores = Object.fromEntries(CATEGORIAS_HEALTH.map((c, i) => [c.key, puntajes[i]]));
+    const [activacion, engagement, calidad, cobertura, resultados] = puntajes;
+    const valores = { activacion, engagement, calidad, cobertura, resultados };
     return {
       id: nuevoId(),
       escuela_id: escuelaId,

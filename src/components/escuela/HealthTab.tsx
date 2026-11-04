@@ -1,18 +1,16 @@
 import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { HealthGrafico } from '@/components/escuela/HealthGrafico';
+import { LeyendaHealth } from '@/components/health/LeyendaHealth';
+import { SelectorVista, useVistaHealth } from '@/components/health/VistaHealth';
 import { HealthChip } from '@/components/ui/Insignias';
 import { Boton } from '@/components/ui/Boton';
+import { HealthGauge, TONO_HEALTH, tonoHealth } from '@/components/ui/HealthGauge';
 import { useHub } from '@/context/HubContext';
 import { useToast } from '@/context/ToastContext';
-import { CATEGORIAS_HEALTH, formatoDelta, nivelHealth, resumenHealth, type CategoriaKey } from '@/lib/domain/health';
+import { fechaCorta } from '@/lib/domain/dates';
+import { CATEGORIAS_HEALTH, formatoDelta, resumenHealth, type CategoriaKey } from '@/lib/domain/health';
 import type { Escuela, HealthMetricas, HealthSnapshot } from '@/lib/types';
-
-const CLASE_NIVEL = {
-  ok: 'text-emerald-700',
-  warn: 'text-amber-700',
-  risk: 'text-rose-700',
-} as const;
 
 function porcentaje(parte: number, total: number): number {
   return total === 0 ? 0 : Math.round((parte / total) * 100);
@@ -28,8 +26,6 @@ function resumenCategoria(clave: CategoriaKey, m: HealthMetricas): string {
       return `${m.calidad.calidad_promedio}/100 calidad promedio`;
     case 'cobertura':
       return `${m.cobertura.curriculo_cubierto_pct}% del currículo cubierto`;
-    case 'resultados':
-      return `${m.resultados.evolution_reports} Evolution Reports generados`;
   }
 }
 
@@ -61,101 +57,130 @@ function detalleCategoria(clave: CategoriaKey, m: HealthMetricas): [string, stri
         ['Alumnos observados en 15 días', `${m.cobertura.alumnos_observados_15d} de ${m.cobertura.alumnos_total}`],
         ['Currículo cubierto', `${m.cobertura.curriculo_cubierto_pct}%`],
       ];
-    case 'resultados': {
-      const d = m.resultados.distribucion;
-      return [
-        ['Evolution Reports generados', String(m.resultados.evolution_reports)],
-        ['Alumnos con Evolution Report', String(m.resultados.alumnos_con_evolution)],
-        ['Distribución', `Unseen ${d.unseen} · Forming ${d.forming} · Struggling ${d.struggling} · Mixed ${d.mixed} · Growing ${d.growing}`],
-      ];
-    }
   }
 }
 
-function TarjetaCategoria({
-  etiqueta,
-  clave,
-  actual,
-  referencia,
-}: {
-  etiqueta: string;
-  clave: CategoriaKey;
-  actual: HealthSnapshot;
-  referencia: HealthSnapshot | null;
-}) {
+/** Vista lista: una fila por estándar con su arco, el resumen y el detalle desplegable. */
+function FilaEstandar({ etiqueta, clave, actual, referencia }: { etiqueta: string; clave: CategoriaKey; actual: HealthSnapshot; referencia: HealthSnapshot | null }) {
   const [abierta, setAbierta] = useState(false);
   const puntaje = actual[clave];
   const delta = referencia ? puntaje - referencia[clave] : null;
-  const nivel = nivelHealth(puntaje);
 
   return (
-    <article className="rounded-xl border border-slate-200 bg-white p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-sm font-medium text-slate-600">{etiqueta}</p>
-          <p className={`mt-1 text-3xl font-semibold ${CLASE_NIVEL[nivel]}`}>
-            {puntaje}
-            <span className="text-base font-normal text-slate-400"> /100</span>
-          </p>
+    <li className="px-4 py-4">
+      <div className="flex items-center gap-4">
+        <HealthGauge valor={puntaje} titulo={etiqueta} tamano="lg" />
+        <div className="min-w-0 flex-1">
+          <h3 className="text-base">{etiqueta}</h3>
+          <p className="mt-0.5 text-sm text-muted-foreground">{resumenCategoria(clave, actual.metricas)}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{delta === null ? 'Sin referencia' : formatoDelta(delta)}</p>
         </div>
-        <span className="text-xs text-slate-500">{delta === null ? 'Sin referencia' : formatoDelta(delta)}</span>
+        <Boton variante="fantasma" onClick={() => setAbierta(!abierta)} className="shrink-0 px-2.5 py-1.5 text-xs" aria-expanded={abierta}>
+          <span className="hidden sm:inline">{abierta ? 'Ocultar detalle' : 'Ver detalle'}</span>
+          <ChevronDown className={`h-4 w-4 transition-transform ${abierta ? 'rotate-180' : ''}`} />
+        </Boton>
       </div>
-      <p className="mt-3 text-sm text-slate-700">{resumenCategoria(clave, actual.metricas)}</p>
-      <Boton variante="fantasma" onClick={() => setAbierta(!abierta)} className="mt-3 -ml-3 px-3 py-1.5 text-xs">
-        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${abierta ? 'rotate-180' : ''}`} />
-        {abierta ? 'Ocultar detalle' : 'Ver detalle'}
-      </Boton>
       {abierta && (
-        <dl className="mt-3 divide-y divide-slate-100 border-t border-slate-100">
+        <dl className="mt-3 divide-y divide-border border-t border-border sm:ml-[88px]">
           {detalleCategoria(clave, actual.metricas).map(([nombre, valor]) => (
             <div key={nombre} className="flex justify-between gap-4 py-2 text-sm">
-              <dt className="text-slate-600">{nombre}</dt>
-              <dd className="text-right font-medium text-slate-900">{valor}</dd>
+              <dt className="text-muted-foreground">{nombre}</dt>
+              <dd className="text-right font-medium tabular-nums">{valor}</dd>
             </div>
           ))}
         </dl>
       )}
-    </article>
+    </li>
+  );
+}
+
+/** Vista canvas: estándar × semana, un cuadradito por medición. */
+function CanvasEstandares({ historia }: { historia: HealthSnapshot[] }) {
+  const semanas = historia.slice(-8);
+  const ultima = semanas.length - 1;
+  return (
+    <div className="overflow-x-auto rounded-2xl border border-border bg-card p-4">
+      <div className="grid w-max grid-cols-[120px_repeat(8,56px)] gap-1.5 sm:grid-cols-[140px_repeat(8,64px)]">
+        <span />
+        {semanas.map((s, i) => (
+          <span key={s.id} className="pb-1 text-center text-xs text-muted-foreground">
+            {i === ultima ? 'Hoy' : fechaCorta(s.fecha)}
+          </span>
+        ))}
+        {CATEGORIAS_HEALTH.map((c) => (
+          <FilaCanvas key={c.key} etiqueta={c.label} valores={semanas.map((s) => s[c.key])} />
+        ))}
+      </div>
+      <LeyendaHealth />
+    </div>
+  );
+}
+
+function FilaCanvas({ etiqueta, valores }: { etiqueta: string; valores: number[] }) {
+  return (
+    <>
+      <span className="flex items-center text-sm font-medium">{etiqueta}</span>
+      {valores.map((v, i) => (
+        <span
+          key={i}
+          title={`${etiqueta}: ${v}`}
+          className={`flex aspect-square items-center justify-center rounded-md text-sm font-semibold tabular-nums ${TONO_HEALTH[tonoHealth(v)].celda}`}
+        >
+          {v}
+        </span>
+      ))}
+    </>
   );
 }
 
 export function HealthTab({ escuela }: { escuela: Escuela }) {
   const { datos } = useHub();
   const { mostrar } = useToast();
+  const [vista, setVista] = useVistaHealth();
   const resumen = resumenHealth(datos.snapshots.filter((s) => s.escuela_id === escuela.id));
   const actual = resumen.actual;
 
   if (!actual || resumen.total === null) {
-    return <p className="text-sm text-slate-500">Todavía no hay mediciones de health para esta escuela.</p>;
+    return <p className="text-sm text-muted-foreground">Todavía no hay mediciones de health para esta escuela.</p>;
   }
 
-  const nivel = nivelHealth(resumen.total);
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-5 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-sm text-slate-500">Health score</p>
-          <p className={`text-4xl font-semibold ${CLASE_NIVEL[nivel]}`}>{resumen.total}</p>
+          <p className="text-sm text-muted-foreground">Health score</p>
+          <p className={`text-3xl font-semibold tabular-nums ${TONO_HEALTH[tonoHealth(resumen.total)].texto}`}>{resumen.total}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <HealthChip total={resumen.total} delta={resumen.delta} conEtiqueta />
-          <span className="text-sm text-slate-600">{formatoDelta(resumen.delta)}</span>
+          <span className="text-sm text-muted-foreground">{formatoDelta(resumen.delta)}</span>
         </div>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-5">
-        <p className="mb-3 text-sm font-medium text-slate-700">Últimas 8 semanas</p>
+      <div className="rounded-2xl border border-border bg-card p-5">
+        <p className="mb-3 text-sm font-medium">Últimas 8 semanas</p>
         <HealthGrafico historia={resumen.historia} />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        {CATEGORIAS_HEALTH.map((c) => (
-          <TarjetaCategoria key={c.key} etiqueta={c.label} clave={c.key} actual={actual} referencia={resumen.referencia} />
-        ))}
-      </div>
+      <section className="flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-lg">Estándares</h2>
+          <SelectorVista vista={vista} onCambiar={setVista} />
+        </div>
+        {vista === 'lista' ? (
+          <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
+            {CATEGORIAS_HEALTH.map((c) => (
+              <FilaEstandar key={c.key} etiqueta={c.label} clave={c.key} actual={actual} referencia={resumen.referencia} />
+            ))}
+          </ul>
+        ) : (
+          <CanvasEstandares historia={resumen.historia} />
+        )}
+      </section>
 
-      <p className="text-xs text-slate-500">
-        Cada categoría pesa lo mismo. Verde ≥ 70, amarillo 50–69, rojo &lt; 50. Loops y último contacto no entran al score.
+      <p className="text-xs text-muted-foreground">
+        Cuatro estándares que pesan lo mismo: Actividad, Engagement, Calidad y Cobertura. Verde ≥ 70, amarillo 50–69, rojo &lt; 50. Loops y último
+        contacto no entran al score.
       </p>
       <div>
         <Boton onClick={() => mostrar(`Abriendo la instancia de ${escuela.nombre} (simulado)`)}>Abrir instancia de la escuela</Boton>
