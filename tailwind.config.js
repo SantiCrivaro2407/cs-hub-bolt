@@ -1,8 +1,140 @@
 /** @type {import('tailwindcss').Config} */
+
+// Volantis design system. Semantic tokens read the CSS variables in src/index.css.
+const token = (name) => `oklch(var(--${name}) / <alpha-value>)`;
+const escala = (pasos) =>
+  Object.fromEntries(Object.entries(pasos).map(([paso, lch]) => [paso, `oklch(${lch} / <alpha-value>)`]));
+
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        background: token('background'),
+        foreground: token('foreground'),
+        card: { DEFAULT: token('card'), foreground: token('card-foreground') },
+        primary: { DEFAULT: token('primary'), foreground: token('primary-foreground') },
+        secondary: { DEFAULT: token('secondary'), foreground: token('secondary-foreground') },
+        accent: { DEFAULT: token('accent'), foreground: token('accent-foreground') },
+        muted: { DEFAULT: token('muted'), foreground: token('muted-foreground') },
+        border: token('border'),
+        input: token('input'),
+        ring: token('ring'),
+        destructive: { DEFAULT: token('destructive'), foreground: token('destructive-foreground') },
+        success: { DEFAULT: token('success'), foreground: token('success-foreground') },
+        warning: { DEFAULT: token('warning'), foreground: token('warning-foreground') },
+        sidebar: {
+          DEFAULT: token('sidebar'),
+          foreground: token('sidebar-foreground'),
+          accent: token('sidebar-accent'),
+          border: token('sidebar-border'),
+        },
+        popover: { DEFAULT: token('card'), foreground: token('card-foreground') },
+        tutorial: {
+          'getting-started': 'oklch(0.92 0.025 165 / <alpha-value>)',
+          observations: 'oklch(0.91 0.03 270 / <alpha-value>)',
+          reports: 'oklch(0.9 0.03 70 / <alpha-value>)',
+          'admin-workflows': 'oklch(0.92 0.015 245 / <alpha-value>)',
+        },
+        triage: {
+          support: { DEFAULT: '#fac8cb', fg: '#c1121f', strong: '#c8142f' },
+          watch: { DEFAULT: '#fce8c8', fg: '#9a6700', strong: '#d56b00' },
+          progressing: { DEFAULT: '#d8e8dd', fg: '#1a7a3a', strong: '#30563a' },
+          insufficient: { DEFAULT: '#e1ebf2', fg: '#2b6fa0', strong: '#4f82a8' },
+          none: { DEFAULT: '#e8e8e8', fg: '#6b6b6b', strong: '#9f9f9f' },
+        },
+
+        // Bridge: legacy palette classes from the Bolt export resolve to Volantis
+        // hues (warm neutrals, sage, amber, coral) until each screen moves to semantic tokens.
+        slate: escala({
+          50: '0.985 0.003 90',
+          100: '0.965 0.005 90',
+          200: '0.92 0.005 90',
+          300: '0.87 0.006 90',
+          400: '0.7 0.008 285',
+          500: '0.5 0.01 285',
+          600: '0.42 0.012 285',
+          700: '0.32 0.015 285',
+          800: '0.24 0.018 285',
+          900: '0.17 0.02 285',
+          950: '0.13 0.015 285',
+        }),
+        emerald: escala({
+          50: '0.97 0.02 155',
+          100: '0.94 0.035 155',
+          200: '0.88 0.05 155',
+          300: '0.8 0.08 155',
+          400: '0.7 0.1 155',
+          500: '0.58 0.12 155',
+          600: '0.52 0.11 155',
+          700: '0.45 0.1 155',
+          800: '0.38 0.08 155',
+          900: '0.32 0.06 155',
+        }),
+        amber: escala({
+          50: '0.98 0.025 80',
+          100: '0.95 0.05 80',
+          200: '0.9 0.08 75',
+          300: '0.84 0.12 72',
+          400: '0.79 0.14 70',
+          500: '0.75 0.15 70',
+          600: '0.66 0.14 65',
+          700: '0.55 0.12 60',
+          800: '0.45 0.1 55',
+          900: '0.38 0.08 55',
+        }),
+        rose: escala({
+          50: '0.97 0.015 20',
+          100: '0.94 0.03 20',
+          200: '0.88 0.06 22',
+          300: '0.8 0.1 24',
+          400: '0.7 0.15 25',
+          500: '0.62 0.19 25',
+          600: '0.57 0.19 25',
+          700: '0.5 0.17 25',
+          800: '0.42 0.14 25',
+          900: '0.36 0.11 25',
+        }),
+        sky: escala({
+          50: '0.97 0.01 240',
+          100: '0.94 0.02 240',
+          200: '0.88 0.035 240',
+          300: '0.8 0.05 240',
+          400: '0.7 0.07 240',
+          500: '0.58 0.09 240',
+          600: '0.52 0.09 240',
+          700: '0.46 0.085 240',
+          800: '0.42 0.08 240',
+          900: '0.36 0.07 240',
+        }),
+      },
+      fontFamily: {
+        sans: ['system-ui', '-apple-system', '"Segoe UI"', 'Roboto', 'sans-serif'],
+        heading: ['system-ui', '-apple-system', '"Segoe UI"', 'Roboto', 'sans-serif'],
+        mono: ['ui-monospace', '"SF Mono"', 'Menlo', 'monospace'],
+      },
+      borderRadius: {
+        xs: 'calc(var(--radius) - 6px)',
+        sm: 'calc(var(--radius) - 4px)',
+        md: 'calc(var(--radius) - 2px)',
+        lg: 'var(--radius)',
+        xl: 'calc(var(--radius) + 4px)',
+        '2xl': 'calc(var(--radius) + 8px)',
+      },
+      boxShadow: {
+        xs: 'var(--shadow-xs)',
+        sm: 'var(--shadow-sm)',
+        DEFAULT: 'var(--shadow-sm)',
+        md: 'var(--shadow-md)',
+        lg: 'var(--shadow-lg)',
+        xl: 'var(--shadow-xl)',
+        tactile: 'var(--shadow-tactile)',
+      },
+      letterSpacing: {
+        tight: '-0.02em',
+        caps: '0.15em',
+      },
+    },
   },
   plugins: [],
 };

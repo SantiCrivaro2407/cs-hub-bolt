@@ -6,6 +6,7 @@ import type {
   FichaCampo,
   HealthSnapshot,
   HubData,
+  Integracion,
   Interaccion,
   Issue,
   Loop,
@@ -27,8 +28,18 @@ async function leerTabla<T>({ tabla, orden }: ConsultaTabla): Promise<T[]> {
   return (data ?? []) as T[];
 }
 
+// Las integraciones llegan con una migración aparte: si la tabla todavía no existe, el backoffice sigue andando.
+async function leerIntegraciones(): Promise<Integracion[]> {
+  const { data, error } = await supabase.from('integraciones').select('*');
+  if (error) {
+    console.warn(`Integraciones no disponibles: ${error.message}`);
+    return [];
+  }
+  return data as Integracion[];
+}
+
 export async function cargarHubData(): Promise<HubData> {
-  const [equipo, escuelas, contactos, fichaCampos, snapshots, interacciones, tickets, ticketMensajes, loops, loopEstados, issues] =
+  const [equipo, escuelas, contactos, fichaCampos, snapshots, interacciones, tickets, ticketMensajes, loops, loopEstados, issues, integraciones] =
     await Promise.all([
       leerTabla<Equipo>({ tabla: 'equipo', orden: 'nombre' }),
       leerTabla<Escuela>({ tabla: 'escuelas', orden: 'nombre' }),
@@ -41,6 +52,7 @@ export async function cargarHubData(): Promise<HubData> {
       leerTabla<Loop>({ tabla: 'loops', orden: 'creado' }),
       leerTabla<LoopEstado>({ tabla: 'loop_estados', orden: 'fecha' }),
       leerTabla<Issue>({ tabla: 'issues', orden: 'id' }),
+      leerIntegraciones(),
     ]);
 
   return {
@@ -55,5 +67,6 @@ export async function cargarHubData(): Promise<HubData> {
     loops,
     loopEstados,
     issues,
+    integraciones,
   };
 }

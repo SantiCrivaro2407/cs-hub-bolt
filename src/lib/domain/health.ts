@@ -1,12 +1,13 @@
 import type { HealthSnapshot } from '@/lib/types';
 import { diasEntre } from '@/lib/domain/dates';
 
+// Los cuatro estándares del health. "Actividad" se guarda en la columna `activacion`;
+// `resultados` sigue en la base pero ya no entra al score.
 export const CATEGORIAS_HEALTH = [
-  { key: 'activacion', label: 'Activación' },
+  { key: 'activacion', label: 'Actividad' },
   { key: 'engagement', label: 'Engagement' },
   { key: 'calidad', label: 'Calidad' },
   { key: 'cobertura', label: 'Cobertura' },
-  { key: 'resultados', label: 'Resultados' },
 ] as const;
 
 export type CategoriaKey = (typeof CATEGORIAS_HEALTH)[number]['key'];

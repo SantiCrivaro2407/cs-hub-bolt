@@ -38,6 +38,8 @@ export function InteraccionItem({ interaccion, escuela }: { interaccion: Interac
   const contactosEscuela = datos.contactos.filter((c) => c.escuela_id === escuela.id && c.email);
   const contactoAutor = contactosEscuela.find((c) => c.nombre === interaccion.autor);
   const interno = interaccion.tipo === 'registro_interno';
+  const [expandido, setExpandido] = useState(false);
+  const largo = interaccion.cuerpo.length > 600;
 
   return (
     <article className={`flex gap-4 rounded-xl border border-slate-200 p-4 ${interno ? 'bg-slate-50' : 'bg-white'}`}>
@@ -51,9 +53,31 @@ export function InteraccionItem({ interaccion, escuela }: { interaccion: Interac
             {interaccion.autor} · {horaMinuto(interaccion.fecha)}
           </span>
           {interaccion.duracion_min !== null && <span>· {interaccion.duracion_min} min</span>}
+          {interaccion.origen && interaccion.origen !== 'manual' && <Pill>{interaccion.origen === 'gmail' ? 'Gmail' : 'Read AI'}</Pill>}
         </div>
         <h3 className={`text-sm font-medium ${interno ? 'text-slate-600' : 'text-slate-900'}`}>{interaccion.titulo}</h3>
-        {interaccion.cuerpo && <p className="whitespace-pre-line text-sm leading-relaxed text-slate-700">{interaccion.cuerpo}</p>}
+        {(interaccion.de || (interaccion.para?.length ?? 0) > 0) && (
+          <p className="text-xs text-muted-foreground">
+            {interaccion.de && <>De: {interaccion.de}</>}
+            {interaccion.de && (interaccion.para?.length ?? 0) > 0 && ' · '}
+            {(interaccion.para?.length ?? 0) > 0 && <>{interaccion.tipo === 'reunion' ? 'Participantes' : 'Para'}: {interaccion.para?.join(', ')}</>}
+          </p>
+        )}
+        {interaccion.cuerpo && (
+          <div>
+            <p className={`whitespace-pre-line text-sm leading-relaxed text-slate-700 ${largo && !expandido ? 'line-clamp-6' : ''}`}>{interaccion.cuerpo}</p>
+            {largo && (
+              <button onClick={() => setExpandido(!expandido)} className="mt-1 text-xs font-medium text-muted-foreground hover:text-foreground">
+                {expandido ? 'Ver menos' : 'Ver email completo'}
+              </button>
+            )}
+          </div>
+        )}
+        {interaccion.enlace && (
+          <a href={interaccion.enlace} target="_blank" rel="noreferrer" className="w-fit text-sm font-medium underline underline-offset-2">
+            Ver reporte en Read AI
+          </a>
+        )}
 
         {interaccion.action_items.length > 0 && (
           <ul className="flex flex-col gap-2 rounded-lg bg-slate-50 p-3">

@@ -49,8 +49,8 @@ export function BuscadorGlobal() {
   }, []);
 
   return (
-    <div ref={caja} className="relative w-full max-w-xs">
-      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+    <div ref={caja} className="relative w-full">
+      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
       <input
         value={texto}
         onChange={(e) => {
@@ -58,12 +58,12 @@ export function BuscadorGlobal() {
           setAbierto(true);
         }}
         onFocus={() => setAbierto(true)}
-        placeholder="Buscar escuelas, loops, tickets, contactos"
-        className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
+        placeholder="Buscar…"
+        className="h-9 w-full rounded-md border border-input bg-background pl-9 pr-3 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
       />
       {abierto && texto.trim().length >= 2 && (
-        <div className="absolute right-0 top-full z-30 mt-1 max-h-80 w-full min-w-72 overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
-          {resultados.length === 0 && <p className="px-3 py-2 text-sm text-slate-500">Sin resultados</p>}
+        <div className="absolute left-0 top-full z-50 mt-1 max-h-80 w-full min-w-72 overflow-y-auto rounded-xl border border-border bg-popover py-1 text-popover-foreground shadow-md">
+          {resultados.length === 0 && <p className="px-3 py-2 text-sm text-muted-foreground">Sin resultados</p>}
           {resultados.map((r) => (
             <button
               key={r.clave}
@@ -72,10 +72,10 @@ export function BuscadorGlobal() {
                 setTexto('');
                 navegar(r.url);
               }}
-              className="flex w-full flex-col items-start px-3 py-2 text-left hover:bg-slate-50"
+              className="flex w-full flex-col items-start px-3 py-2 text-left hover:bg-accent"
             >
-              <span className="text-sm font-medium text-slate-900">{r.titulo}</span>
-              <span className="text-xs text-slate-500">{r.detalle}</span>
+              <span className="text-sm font-medium">{r.titulo}</span>
+              <span className="text-xs text-muted-foreground">{r.detalle}</span>
             </button>
           ))}
         </div>

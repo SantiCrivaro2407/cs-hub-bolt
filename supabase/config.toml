@@ -1,0 +1,13 @@
+# Solo la configuración de las Edge Functions; el resto del proyecto usa los valores por defecto.
+project_id = "cs-hub"
+
+# Las tres validan la identidad por su cuenta (state firmado, token del webhook o sesión del backoffice).
+
+[functions.gmail-oauth]
+verify_jwt = false
+
+[functions.gmail-sync]
+verify_jwt = false
+
+[functions.readai-webhook]
+verify_jwt = false

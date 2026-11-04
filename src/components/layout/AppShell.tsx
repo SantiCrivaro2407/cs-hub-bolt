@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { RotateCcw, LogOut } from 'lucide-react';
+import { HeartPulse, LogOut, Plug, Repeat, RotateCcw, School, Ticket } from 'lucide-react';
 import { BuscadorGlobal } from '@/components/layout/BuscadorGlobal';
 import { Boton } from '@/components/ui/Boton';
 import { Enlace } from '@/components/ui/Enlace';
@@ -8,9 +8,22 @@ import { useAuth } from '@/context/AuthContext';
 import { useHub } from '@/context/HubContext';
 import { useRuta } from '@/lib/router';
 
-function Badge({ cantidad }: { cantidad: number }) {
+function Contador({ cantidad, titulo, tono }: { cantidad: number; titulo: string; tono: 'verde' | 'rojo' }) {
   if (cantidad === 0) return null;
-  return <span className="ml-1.5 rounded-full bg-slate-900 px-1.5 py-0.5 text-[11px] font-semibold leading-none text-white">{cantidad}</span>;
+  const clases = tono === 'verde' ? 'bg-triage-progressing text-triage-progressing-fg' : 'bg-triage-support text-triage-support-fg';
+  return (
+    <span title={titulo} className={`ml-auto rounded-full px-1.5 text-xs font-medium tabular-nums ${clases}`}>
+      {cantidad}
+    </span>
+  );
+}
+
+function Logo() {
+  return (
+    <Enlace href="/" className="flex items-center gap-2 px-2 py-1">
+      <img src="/logo-wordmark.png" alt="Volantis" width={110} height={48} className="h-auto w-[110px]" />
+    </Enlace>
+  );
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -24,9 +37,23 @@ export function AppShell({ children }: { children: ReactNode }) {
   const loopsListos = datos.loops.filter((l) => l.estado === 'Ready to reply').length;
 
   const enlaces = [
-    { href: '/', label: 'Escuelas', activo: path === '/' || path.startsWith('/escuelas'), badge: 0 },
-    { href: '/tickets', label: 'Tickets', activo: path === '/tickets', badge: ticketsNuevos },
-    { href: '/loops', label: 'Loops', activo: path === '/loops', badge: loopsListos },
+    { href: '/', label: 'Escuelas', Icono: School, activo: path === '/' || path.startsWith('/escuelas'), contador: null },
+    { href: '/health', label: 'Health', Icono: HeartPulse, activo: path === '/health', contador: null },
+    {
+      href: '/tickets',
+      label: 'Tickets',
+      Icono: Ticket,
+      activo: path === '/tickets',
+      contador: <Contador cantidad={ticketsNuevos} titulo={`${ticketsNuevos} tickets nuevos`} tono="rojo" />,
+    },
+    {
+      href: '/loops',
+      label: 'Loops',
+      Icono: Repeat,
+      activo: path === '/loops',
+      contador: <Contador cantidad={loopsListos} titulo={`${loopsListos} loops listos para responder`} tono="verde" />,
+    },
+    { href: '/integraciones', label: 'Integraciones', Icono: Plug, activo: path === '/integraciones', contador: null },
   ];
 
   const confirmarDemo = async () => {
@@ -37,48 +64,76 @@ export function AppShell({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3 lg:px-8">
-          <Enlace href="/" className="text-sm font-semibold text-slate-900">
-            CS Hub <span className="font-normal text-slate-500">· Volantis</span>
-          </Enlace>
-          <nav className="flex items-center gap-1">
-            {enlaces.map((e) => (
-              <Enlace
-                key={e.href}
-                href={e.href}
-                className={`inline-flex items-center rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-                  e.activo ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                }`}
-              >
-                {e.label}
-                <Badge cantidad={e.badge} />
-              </Enlace>
-            ))}
-          </nav>
-          <div className="ml-auto flex w-full items-center gap-3 sm:w-auto">
-            <span className="hidden text-sm text-slate-600 xl:inline">Sesión: {yo.nombre}</span>
-            <BuscadorGlobal />
-            <Boton onClick={() => setConfirmarReinicio(true)} className="px-3 py-2">
-              <RotateCcw className="h-4 w-4" />
-              <span className="hidden md:inline">Reiniciar demo</span>
-            </Boton>
-            <button onClick={cerrarSesion} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900" aria-label="Cerrar sesión">
+    <div className="flex min-h-screen bg-background">
+      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar p-4 lg:flex">
+        <Logo />
+        <div className="mt-1 px-2 text-xs font-medium uppercase tracking-caps text-muted-foreground">CS Hub</div>
+        <div className="mt-5">
+          <BuscadorGlobal />
+        </div>
+        <nav className="mt-4 flex flex-col gap-1">
+          {enlaces.map(({ href, label, Icono, activo, contador }) => (
+            <Enlace
+              key={href}
+              href={href}
+              className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-sidebar-foreground hover:bg-sidebar-accent ${activo ? 'bg-sidebar-accent font-medium' : ''}`}
+            >
+              <Icono className="h-5 w-5" />
+              {label}
+              {contador}
+            </Enlace>
+          ))}
+        </nav>
+        <div className="mt-auto flex flex-col gap-2 border-t border-sidebar-border pt-4 text-xs text-muted-foreground">
+          <div className="flex items-center justify-between gap-2">
+            <span>
+              Sesión: <span className="font-medium text-foreground">{yo.nombre}</span>
+            </span>
+            <button onClick={cerrarSesion} className="rounded-md p-1.5 hover:bg-sidebar-accent hover:text-foreground" aria-label="Cerrar sesión">
               <LogOut className="h-4 w-4" />
             </button>
           </div>
+          <div>Datos de ejemplo · integraciones simuladas</div>
+          <Boton onClick={() => setConfirmarReinicio(true)} className="h-8 px-2.5 text-xs">
+            <RotateCcw className="h-3.5 w-3.5" />
+            Reiniciar demo
+          </Boton>
         </div>
-        <div className="border-t border-slate-100 bg-slate-100/70 px-4 py-1.5 text-center text-xs text-slate-600">
-          Datos de ejemplo · las integraciones (Gmail, Google Calendar, Read AI, Linear, Slack, plataforma) están simuladas
-        </div>
-      </header>
+      </aside>
 
-      <main className="mx-auto max-w-6xl px-4 py-8 lg:px-8">{children}</main>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-40 flex flex-col gap-2 border-b border-border bg-background/95 px-4 py-2 backdrop-blur lg:hidden">
+          <div className="flex items-center justify-between gap-3">
+            <Logo />
+            <div className="flex items-center gap-1">
+              <button onClick={() => setConfirmarReinicio(true)} className="rounded-md p-2 text-muted-foreground hover:bg-accent" aria-label="Reiniciar demo">
+                <RotateCcw className="h-4 w-4" />
+              </button>
+              <button onClick={cerrarSesion} className="rounded-md p-2 text-muted-foreground hover:bg-accent" aria-label="Cerrar sesión">
+                <LogOut className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+          <nav className="-mx-4 flex items-center gap-1 overflow-x-auto px-4">
+            {enlaces.map(({ href, label, Icono, activo }) => (
+              <Enlace
+                key={href}
+                href={href}
+                className={`inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-sm hover:bg-accent ${activo ? 'bg-accent font-medium' : ''}`}
+              >
+                <Icono className="h-4 w-4" />
+                {label}
+              </Enlace>
+            ))}
+          </nav>
+          <BuscadorGlobal />
+        </header>
+        <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
+      </div>
 
       {confirmarReinicio && (
         <Modal titulo="¿Reiniciar la demo?" onCerrar={() => setConfirmarReinicio(false)}>
-          <p className="text-sm text-slate-600">Se van a volver a cargar los datos de ejemplo. Los cambios que hiciste se pierden.</p>
+          <p className="text-sm text-muted-foreground">Se van a volver a cargar los datos de ejemplo. Los cambios que hiciste se pierden.</p>
           <div className="mt-6 flex justify-end gap-2">
             <Boton onClick={() => setConfirmarReinicio(false)}>Cancelar</Boton>
             <Boton variante="peligro" onClick={confirmarDemo} disabled={reiniciando}>
