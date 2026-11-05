@@ -1,6 +1,7 @@
 import { LoopsAgrupados, type GrupoLoop } from '@/components/loops/LoopsAgrupados';
 import { useHub } from '@/context/HubContext';
 import { navegar, urlConParams, useRuta } from '@/lib/router';
+import { etiquetaMiembro } from '@/lib/domain/cartera';
 
 const campo =
   'h-9 cursor-pointer rounded-md border border-input bg-background px-2.5 text-sm shadow-xs outline-none hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50';
@@ -48,7 +49,7 @@ export function LoopsPage() {
           <option value="">Todos los owners</option>
           {datos.equipo.map((m) => (
             <option key={m.id} value={m.id}>
-              {m.nombre}
+              {etiquetaMiembro(datos.equipo, m)}
             </option>
           ))}
         </select>

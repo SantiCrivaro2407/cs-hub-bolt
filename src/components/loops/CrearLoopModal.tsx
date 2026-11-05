@@ -4,6 +4,7 @@ import { Modal } from '@/components/ui/Modal';
 import { useHub } from '@/context/HubContext';
 import { crearLoop, type NuevoLoopInput } from '@/lib/actions/loops';
 import type { Escuela, OrigenLoop } from '@/lib/types';
+import { etiquetaMiembro } from '@/lib/domain/cartera';
 
 interface CrearLoopModalProps {
   escuela: Escuela;
@@ -74,7 +75,7 @@ export function CrearLoopModal({ escuela, origen, origenInteraccionId, tituloIni
             <select value={ownerId} onChange={(e) => setOwnerId(e.target.value)} className={campo}>
               {datos.equipo.map((m) => (
                 <option key={m.id} value={m.id}>
-                  {m.nombre}
+                  {etiquetaMiembro(datos.equipo, m)}
                 </option>
               ))}
             </select>

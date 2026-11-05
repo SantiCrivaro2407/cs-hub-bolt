@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Eye, EyeOff, Search, SlidersHorizontal, X } from 'lucide-react';
 import type { Equipo, Etapa } from '@/lib/types';
+import { etiquetaMiembro } from '@/lib/domain/cartera';
 
 export type FiltroColor = 'todos' | 'ok' | 'warn' | 'risk';
 
@@ -76,7 +77,7 @@ export function BarraFiltros({
             <option value="">Todos los owners</option>
             {equipo.map((m) => (
               <option key={m.id} value={m.id}>
-                {m.nombre}
+                {etiquetaMiembro(equipo, m)}
               </option>
             ))}
           </select>

@@ -5,7 +5,10 @@ import { Pill } from '@/components/ui/Insignias';
 import { useHub } from '@/context/HubContext';
 import { guardarCamposFicha, type CambioCampo } from '@/lib/actions/escuelas';
 import { campoLleno, resumenFicha } from '@/lib/domain/ficha';
+import { emailConFormato } from '@/lib/domain/email';
 import type { Escuela, FichaCampo } from '@/lib/types';
+
+const esCampoEmail = (c: FichaCampo) => /e-?mail/i.test(c.campo);
 
 export function FichaTab({ escuela }: { escuela: Escuela }) {
   const { datos, ctx, ejecutar } = useHub();
@@ -31,7 +34,13 @@ export function FichaTab({ escuela }: { escuela: Escuela }) {
     setAbiertas((actual) => new Set(actual).add(seccion));
   };
 
+  const emailInvalido = (c: FichaCampo) => {
+    const valor = (borrador[c.id] ?? '').trim();
+    return esCampoEmail(c) && valor !== '' && !emailConFormato(valor);
+  };
+
   const guardar = async (lista: FichaCampo[]) => {
+    if (lista.some(emailInvalido)) return;
     const cambios: CambioCampo[] = lista
       .filter((c) => (c.valor ?? '') !== (borrador[c.id] ?? '').trim())
       .map((c) => ({ campo: c, valor: borrador[c.id] ?? '' }));
@@ -100,11 +109,18 @@ export function FichaTab({ escuela }: { escuela: Escuela }) {
                               {c.critico ? '*' : ''}
                             </span>
                             {enEdicion ? (
-                              <input
-                                value={borrador[c.id] ?? ''}
-                                onChange={(e) => setBorrador((b) => ({ ...b, [c.id]: e.target.value }))}
-                                className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-900"
-                              />
+                              <div className="flex flex-col gap-1">
+                                <input
+                                  type={esCampoEmail(c) ? 'email' : 'text'}
+                                  value={borrador[c.id] ?? ''}
+                                  onChange={(e) => setBorrador((b) => ({ ...b, [c.id]: e.target.value }))}
+                                  aria-invalid={emailInvalido(c)}
+                                  className={`rounded-lg border px-3 py-2 text-sm text-slate-900 outline-none ${
+                                    emailInvalido(c) ? 'border-rose-400 focus:border-rose-600' : 'border-slate-300 focus:border-slate-900'
+                                  }`}
+                                />
+                                {emailInvalido(c) && <span className="text-xs text-rose-700">Escribí un email válido, por ejemplo nombre@escuela.edu</span>}
+                              </div>
                             ) : vacio ? (
                               <span className={`text-sm ${c.critico ? 'font-medium text-rose-700' : 'text-slate-400'}`}>
                                 {c.critico ? 'Falta completar' : 'Sin completar'}
@@ -120,7 +136,7 @@ export function FichaTab({ escuela }: { escuela: Escuela }) {
                   {enEdicion && (
                     <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
                       <Boton onClick={() => setEditando(null)}>Cancelar</Boton>
-                      <Boton variante="primario" disabled={guardando} onClick={() => guardar(seccion.campos)}>
+                      <Boton variante="primario" disabled={guardando || seccion.campos.some(emailInvalido)} onClick={() => guardar(seccion.campos)}>
                         Guardar
                       </Boton>
                     </div>

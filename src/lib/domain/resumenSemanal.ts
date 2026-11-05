@@ -106,7 +106,7 @@ function parrafoActividad(datos: HubData, escuela: Escuela, ahora: Date): string
   const ticketsResueltos = tickets.filter((t) => t.estado === 'Resuelto' && enLaSemana(t.actualizado)).length;
   const sinResponder = tickets.filter((t) => t.estado === 'Nuevo').length;
   const fraseTickets = [
-    ticketsNuevos > 0 ? `Entraron ${cant(ticketsNuevos, 'ticket nuevo', 'tickets nuevos')}` : 'No entraron tickets nuevos',
+    ticketsNuevos > 0 ? `${ticketsNuevos === 1 ? 'Entró' : 'Entraron'} ${cant(ticketsNuevos, 'ticket nuevo', 'tickets nuevos')}` : 'No entraron tickets nuevos',
     ticketsResueltos > 0 ? `se ${ticketsResueltos === 1 ? 'resolvió' : 'resolvieron'} ${ticketsResueltos}` : null,
     sinResponder > 0 ? `${cant(sinResponder, 'sigue', 'siguen')} sin responder` : null,
   ].filter(Boolean);
