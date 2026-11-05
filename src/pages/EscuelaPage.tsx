@@ -4,6 +4,7 @@ import { HealthTab } from '@/components/escuela/HealthTab';
 import { InteraccionesTab } from '@/components/escuela/InteraccionesTab';
 import { IssuesTab } from '@/components/escuela/IssuesTab';
 import { LoopsTab } from '@/components/escuela/LoopsTab';
+import { ResumenSemanalPanel } from '@/components/escuela/ResumenSemanalPanel';
 import { TicketsPanel } from '@/components/tickets/TicketsPanel';
 import { useHub } from '@/context/HubContext';
 import { issueResuelta } from '@/lib/domain/loops';
@@ -45,6 +46,7 @@ export function EscuelaPage({ slug }: { slug: string }) {
   return (
     <div className="flex flex-col gap-8">
       <EncabezadoEscuela escuela={escuela} />
+      <ResumenSemanalPanel escuela={escuela} />
 
       <div className="border-b border-slate-200">
         <nav className="-mb-px flex gap-1 overflow-x-auto" aria-label="Secciones de la escuela">

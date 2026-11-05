@@ -3,34 +3,30 @@ import { nivelHealth, type NivelHealth } from '@/lib/domain/health';
 type TonoHealth = NivelHealth | 'sin-datos';
 
 // Niveles de health sobre la paleta triage del design system (igual que cs-hub-mvp).
-export const TONO_HEALTH: Record<TonoHealth, { texto: string; trazo: string; punto: string; tarjeta: string; celda: string }> = {
+export const TONO_HEALTH: Record<TonoHealth, { texto: string; trazo: string; punto: string; tarjeta: string }> = {
   ok: {
     texto: 'text-triage-progressing-fg',
     trazo: 'text-triage-progressing-fg',
     punto: 'bg-success',
     tarjeta: 'border-triage-progressing bg-triage-progressing/35 hover:border-triage-progressing-fg/40',
-    celda: 'bg-triage-progressing text-triage-progressing-fg',
   },
   warn: {
     texto: 'text-triage-watch-fg',
     trazo: 'text-triage-watch-strong',
     punto: 'bg-warning',
     tarjeta: 'border-triage-watch bg-triage-watch/45 hover:border-triage-watch-fg/40',
-    celda: 'bg-triage-watch text-triage-watch-fg',
   },
   risk: {
     texto: 'text-triage-support-fg',
     trazo: 'text-triage-support-strong',
     punto: 'bg-destructive',
     tarjeta: 'border-triage-support bg-triage-support/30 hover:border-triage-support-fg/40',
-    celda: 'bg-triage-support text-triage-support-fg',
   },
   'sin-datos': {
     texto: 'text-muted-foreground',
     trazo: 'text-triage-none-strong',
     punto: 'bg-triage-none-strong',
     tarjeta: 'border-border bg-card hover:border-foreground/20',
-    celda: 'bg-triage-none text-triage-none-fg',
   },
 };
 

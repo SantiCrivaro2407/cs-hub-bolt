@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { BotonLinear } from '@/components/issues/IssueDetalle';
 import { IssuesDelLoop } from '@/components/loops/IssuesDelLoop';
 import { Boton } from '@/components/ui/Boton';
 import { EditorEmail } from '@/components/ui/EditorEmail';
@@ -74,13 +75,14 @@ export function LoopDetalle({ loop, escuela }: { loop: Loop; escuela: Escuela })
         </label>
       </dl>
 
-      {!cerrado && !listo && (
-        <div>
+      <div className="flex flex-wrap gap-2">
+        {!cerrado && !listo && (
           <Boton variante="secundario" onClick={() => setResponder(true)}>
             Responder a la escuela
           </Boton>
-        </div>
-      )}
+        )}
+        <BotonLinear item={loop} />
+      </div>
 
       <IssuesDelLoop loop={loop} escuela={escuela} />
 

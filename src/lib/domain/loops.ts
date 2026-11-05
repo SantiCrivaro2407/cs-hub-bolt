@@ -69,3 +69,11 @@ export function siguienteIdIssue(prefijo: 'CS' | 'TECH', issues: Pick<Issue, 'id
   const siguiente = Math.max(base, ...numeros) + 1;
   return `${cabecera}${siguiente}`;
 }
+
+// Workspace de Linear de Volantis; se puede pisar con VITE_LINEAR_URL.
+const LINEAR_URL = (import.meta.env.VITE_LINEAR_URL as string | undefined) ?? 'https://linear.app/volantis-education';
+
+/** Link a Linear de una issue o de un loop (los loops también son issues de Linear). */
+export function urlLinear(item: Pick<Issue | Loop, 'id' | 'url'>): string {
+  return item.url || `${LINEAR_URL}/issue/${item.id}`;
+}

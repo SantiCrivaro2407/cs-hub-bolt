@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { Info } from 'lucide-react';
+import { BotonLinear, IssueDetalle } from '@/components/issues/IssueDetalle';
 import { Enlace } from '@/components/ui/Enlace';
 import { useHub } from '@/context/HubContext';
 import { cambiarEstadoIssue } from '@/lib/actions/loops';
 import { rutaEscuela } from '@/lib/domain/cartera';
 import { hacePlural, diasEntre } from '@/lib/domain/dates';
 import { ESTADOS_ISSUE, issueResuelta } from '@/lib/domain/loops';
+import { navegar, urlConParams, useRuta } from '@/lib/router';
 import type { Escuela, EquipoIssue, EstadoIssue } from '@/lib/types';
 
 const campo = 'rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-900';
@@ -14,6 +16,8 @@ export function IssuesTab({ escuela }: { escuela: Escuela }) {
   const { datos, ctx, ejecutar } = useHub();
   const [equipo, setEquipo] = useState<EquipoIssue | ''>('');
   const [estado, setEstado] = useState<EstadoIssue | ''>('');
+  const { params } = useRuta();
+  const abrir = (id: string | null) => navegar(urlConParams(`/escuelas/${escuela.slug}`, { issue: id }, params));
 
   const todas = datos.issues.filter((i) => i.escuela_id === escuela.id);
   const visibles = todas
@@ -24,6 +28,7 @@ export function IssuesTab({ escuela }: { escuela: Escuela }) {
   const abiertasCs = todas.filter((i) => i.equipo === 'CS' && !issueResuelta(i)).length;
   const abiertasTech = todas.filter((i) => i.equipo === 'Tech' && !issueResuelta(i)).length;
   const resueltas = todas.filter(issueResuelta).length;
+  const abierta = todas.find((i) => i.id === params.get('issue'));
 
   const contadores = [
     { etiqueta: 'Abiertas CS', valor: abiertasCs },
@@ -44,7 +49,7 @@ export function IssuesTab({ escuela }: { escuela: Escuela }) {
 
       <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
         <Info className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" aria-hidden />
-        <p className="text-sm text-slate-700">Solo lectura · sincronizado desde Linear (simulado)</p>
+        <p className="text-sm text-slate-700">Sincronizado desde Linear (simulado) · tocá una issue para ver el detalle</p>
       </div>
 
       <div className="flex flex-wrap gap-3">
@@ -79,13 +84,20 @@ export function IssuesTab({ escuela }: { escuela: Escuela }) {
                 <th className="px-4 py-3 font-medium">Asignado</th>
                 <th className="px-4 py-3 font-medium">Actualizada</th>
                 <th className="px-4 py-3 font-medium">Loop</th>
+                <th className="px-4 py-3 font-medium">
+                  <span className="sr-only">Linear</span>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {visibles.map((issue) => (
                 <tr key={issue.id} className="transition-colors hover:bg-slate-50">
                   <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-slate-600">{issue.id}</td>
-                  <td className="px-4 py-3 text-slate-900">{issue.titulo}</td>
+                  <td className="px-4 py-3">
+                    <button onClick={() => abrir(issue.id)} className="text-left font-medium text-slate-900 hover:underline">
+                      {issue.titulo}
+                    </button>
+                  </td>
                   <td className="px-4 py-3 text-slate-700">{issue.equipo}</td>
                   <td className="px-4 py-3">
                     <select
@@ -112,12 +124,17 @@ export function IssuesTab({ escuela }: { escuela: Escuela }) {
                       <span className="text-xs text-slate-400">Sin loop</span>
                     )}
                   </td>
+                  <td className="whitespace-nowrap px-4 py-3">
+                    <BotonLinear item={issue} compacto />
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
+
+      {abierta && <IssueDetalle issue={abierta} escuela={escuela} onCerrar={() => abrir(null)} />}
     </div>
   );
 }

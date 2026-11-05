@@ -2,7 +2,9 @@ import { ArrowDownRight, ArrowRight, ArrowUpRight } from 'lucide-react';
 import { Avatar } from '@/components/ui/Insignias';
 import { Enlace } from '@/components/ui/Enlace';
 import { TONO_HEALTH, tonoHealth } from '@/components/ui/HealthGauge';
+import { useHub } from '@/context/HubContext';
 import type { ResumenEscuela } from '@/lib/domain/cartera';
+import { pendientesEscuela } from '@/lib/domain/pendientes';
 
 const TENDENCIA = {
   sube: { Icono: ArrowUpRight, etiqueta: 'Sube', clase: 'text-triage-progressing-fg' },
@@ -12,12 +14,15 @@ const TENDENCIA = {
 
 /** Tarjeta de la home: tinte según el health y las métricas clave. El detalle por estándar vive en Health. */
 export function TarjetaEscuela({ resumen }: { resumen: ResumenEscuela }) {
+  const { datos } = useHub();
   const { escuela, health } = resumen;
+  const pendientes = pendientesEscuela(datos, escuela);
   const tono = TONO_HEALTH[tonoHealth(health.total)];
   const tendencia = TENDENCIA[health.delta === null || health.delta === 0 ? 'estable' : health.delta > 0 ? 'sube' : 'baja'];
 
   return (
-    <Enlace href={`/escuelas/${escuela.slug}`} className={`group flex flex-col gap-4 rounded-2xl border p-5 shadow-xs hover:shadow-md ${tono.tarjeta}`}>
+    <Enlace href={`/escuelas/${escuela.slug}`} className={`group relative flex flex-col gap-4 rounded-2xl border p-5 shadow-xs hover:shadow-md ${tono.tarjeta}`}>
+      <GloboPendientes textos={pendientes.map((p) => p.texto)} />
       <div className="flex items-start justify-between gap-3">
         <Avatar iniciales={escuela.iniciales} />
         <span className="rounded-full bg-card/70 px-2 py-0.5 text-xs text-muted-foreground">{escuela.etapa}</span>
@@ -40,6 +45,21 @@ export function TarjetaEscuela({ resumen }: { resumen: ResumenEscuela }) {
         </ul>
       </div>
     </Enlace>
+  );
+}
+
+// Como las notificaciones del celular: solo aparece si hay algo que requiere atención.
+function GloboPendientes({ textos }: { textos: string[] }) {
+  if (textos.length === 0) return null;
+  const etiqueta = `${textos.length} ${textos.length === 1 ? 'pendiente' : 'pendientes'}`;
+  return (
+    <span
+      title={textos.join('\n')}
+      aria-label={etiqueta}
+      className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full bg-triage-watch px-1.5 text-xs font-semibold tabular-nums text-triage-watch-fg shadow-sm ring-2 ring-background"
+    >
+      {textos.length > 9 ? '9+' : textos.length}
+    </span>
   );
 }
 
