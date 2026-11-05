@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { HeartPulse, LogOut, Plug, Repeat, RotateCcw, School, Ticket } from 'lucide-react';
+import { HeartPulse, Inbox, LogOut, Plug, Repeat, RotateCcw, School, Ticket } from 'lucide-react';
 import { BuscadorGlobal } from '@/components/layout/BuscadorGlobal';
 import { Boton } from '@/components/ui/Boton';
 import { Enlace } from '@/components/ui/Enlace';
@@ -7,6 +7,7 @@ import { Modal } from '@/components/ui/Modal';
 import { useAuth } from '@/context/AuthContext';
 import { useHub } from '@/context/HubContext';
 import { useRuta } from '@/lib/router';
+import { urgentesDe } from '@/pages/MisPendientesPage';
 
 function Contador({ cantidad, titulo, tono }: { cantidad: number; titulo: string; tono: 'verde' | 'rojo' }) {
   if (cantidad === 0) return null;
@@ -36,7 +37,16 @@ export function AppShell({ children }: { children: ReactNode }) {
   const ticketsNuevos = datos.tickets.filter((t) => t.estado === 'Nuevo').length;
   const loopsListos = datos.loops.filter((l) => l.estado === 'Ready to reply').length;
 
+  const misUrgentes = urgentesDe(datos, yo);
+
   const enlaces = [
+    {
+      href: '/pendientes',
+      label: 'Mis pendientes',
+      Icono: Inbox,
+      activo: path === '/pendientes',
+      contador: <Contador cantidad={misUrgentes} titulo={`${misUrgentes} pendientes tuyos para atender ya`} tono="rojo" />,
+    },
     { href: '/', label: 'Escuelas', Icono: School, activo: path === '/' || path.startsWith('/escuelas'), contador: null },
     { href: '/health', label: 'Health', Icono: HeartPulse, activo: path === '/health', contador: null },
     {

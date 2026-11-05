@@ -3,6 +3,7 @@ import { ExternalLink, PlayCircle } from 'lucide-react';
 import { Boton } from '@/components/ui/Boton';
 import { Enlace } from '@/components/ui/Enlace';
 import { EstadoTicketBadge } from '@/components/ui/Insignias';
+import { X } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { useHub } from '@/context/HubContext';
 import { cambiarEstadoTicket, cambiarOwnerTicket } from '@/lib/actions/tickets';
@@ -117,17 +118,18 @@ interface TicketDetalleProps {
   onCerrar: () => void;
   onResponder: () => void;
   onCrearLoop: () => void;
+  /** En la bandeja el ticket se lee al lado de la lista, sin ventana emergente. */
+  enLinea?: boolean;
 }
 
-export function TicketDetalle({ ticket, escuela, onCerrar, onResponder, onCrearLoop }: TicketDetalleProps) {
+export function TicketDetalle({ ticket, escuela, onCerrar, onResponder, onCrearLoop, enLinea = false }: TicketDetalleProps) {
   const { datos, ctx, ejecutar } = useHub();
   const contacto = datos.contactos.find((c) => c.id === ticket.contacto_id);
   const conversacion = conversacionTicket(datos, ticket);
   const ultimaRespuesta = conversacion.filter((m) => m.deEquipo).at(-1);
   const vencido = ticketVencido(ticket);
 
-  return (
-    <Modal titulo={ticket.asunto} onCerrar={onCerrar} ancho="max-w-2xl">
+  const contenido = (
       <div className="flex flex-col gap-5">
         <div className="flex flex-wrap items-center gap-3 text-sm text-slate-600">
           <EstadoTicketBadge estado={ticket.estado} vencido={vencido} />
@@ -210,6 +212,25 @@ export function TicketDetalle({ ticket, escuela, onCerrar, onResponder, onCrearL
           </Enlace>
         </div>
       </div>
-    </Modal>
+  );
+
+  if (!enLinea) {
+    return (
+      <Modal titulo={ticket.asunto} onCerrar={onCerrar} ancho="max-w-2xl">
+        {contenido}
+      </Modal>
+    );
+  }
+
+  return (
+    <article aria-label={ticket.asunto} className="flex flex-col rounded-2xl border border-border bg-card">
+      <div className="flex items-start justify-between gap-3 border-b border-border px-5 py-4">
+        <h2 className="text-lg">{ticket.asunto}</h2>
+        <button onClick={onCerrar} className="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground" aria-label="Cerrar ticket">
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+      <div className="px-5 py-4">{contenido}</div>
+    </article>
   );
 }
