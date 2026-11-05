@@ -78,3 +78,12 @@
     color: oklch(var(--primary-foreground));
   }
 }
+
+@keyframes panel-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}

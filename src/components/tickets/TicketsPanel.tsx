@@ -169,6 +169,7 @@ export function TicketsPanel({ escuelaId }: { escuelaId?: string }) {
           paraEditable={false}
           textoBoton="Enviar respuesta"
           ofrecerResolver
+          citado={{ autor: contacto.nombre, fecha: ticket.creado, cuerpo: ticket.mensaje }}
           onEnviar={(envio, marcarResuelto) =>
             ejecutar(() => responderTicket(ctx, ticket, escuelaDelTicket, envio, marcarResuelto), 'Respuesta enviada')
           }
