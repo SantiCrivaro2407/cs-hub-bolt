@@ -11,7 +11,8 @@ import { issueResuelta } from '@/lib/domain/loops';
 import { urlConParams, useRuta } from '@/lib/router';
 import { Enlace } from '@/components/ui/Enlace';
 
-const PESTANAS = ['ficha', 'health', 'interacciones', 'tickets', 'issues', 'loops'] as const;
+// Primero el estado de la escuela, después el día a día; la Ficha es de setup y va al final.
+const PESTANAS = ['health', 'interacciones', 'loops', 'issues', 'tickets', 'ficha'] as const;
 type Pestana = (typeof PESTANAS)[number];
 
 export function EscuelaPage({ slug }: { slug: string }) {
@@ -28,19 +29,19 @@ export function EscuelaPage({ slug }: { slug: string }) {
   }
 
   const pestanaParam = params.get('tab') as Pestana | null;
-  const pestana: Pestana = pestanaParam && PESTANAS.includes(pestanaParam) ? pestanaParam : 'ficha';
+  const pestana: Pestana = pestanaParam && PESTANAS.includes(pestanaParam) ? pestanaParam : 'health';
 
   const tickets = datos.tickets.filter((t) => t.escuela_id === escuela.id && t.estado !== 'Resuelto').length;
   const issues = datos.issues.filter((i) => i.escuela_id === escuela.id && !issueResuelta(i)).length;
   const loops = datos.loops.filter((l) => l.escuela_id === escuela.id && l.estado !== 'Closed').length;
 
   const etiquetas: { clave: Pestana; texto: string; contador?: number }[] = [
-    { clave: 'ficha', texto: 'Ficha' },
     { clave: 'health', texto: 'Health' },
     { clave: 'interacciones', texto: 'Interacciones' },
-    { clave: 'tickets', texto: 'Tickets', contador: tickets },
-    { clave: 'issues', texto: 'Issues', contador: issues },
     { clave: 'loops', texto: 'Loops', contador: loops },
+    { clave: 'issues', texto: 'Issues', contador: issues },
+    { clave: 'tickets', texto: 'Tickets', contador: tickets },
+    { clave: 'ficha', texto: 'Ficha' },
   ];
 
   return (

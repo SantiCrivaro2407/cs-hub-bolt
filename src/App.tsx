@@ -7,6 +7,7 @@ import { EscuelasPage } from '@/pages/EscuelasPage';
 import { EscuelaPage } from '@/pages/EscuelaPage';
 import { TicketsPage } from '@/pages/TicketsPage';
 import { LoopsPage } from '@/pages/LoopsPage';
+import { MisPendientesPage } from '@/pages/MisPendientesPage';
 import { HealthPage } from '@/pages/HealthPage';
 import { IntegracionesPage } from '@/pages/IntegracionesPage';
 import { useRuta } from '@/lib/router';
@@ -18,6 +19,7 @@ function Rutas() {
   if (coincidencia) return <EscuelaPage slug={decodeURIComponent(coincidencia[1])} />;
   if (path === '/tickets') return <TicketsPage />;
   if (path === '/loops') return <LoopsPage />;
+  if (path === '/pendientes') return <MisPendientesPage />;
   if (path === '/health') return <HealthPage />;
   if (path === '/integraciones') return <IntegracionesPage />;
   return (
