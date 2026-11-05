@@ -129,6 +129,7 @@ export function InteraccionItem({ interaccion, escuela }: { interaccion: Interac
           }}
           paraEditable={false}
           textoBoton="Enviar email"
+          citado={{ autor: interaccion.autor, fecha: interaccion.fecha, cuerpo: interaccion.cuerpo }}
           onEnviar={(envio) => ejecutar(() => enviarEmail(ctx, escuela, envio, { loopId: interaccion.loop_id }), 'Email enviado')}
           onCerrar={() => setAccion(null)}
         />

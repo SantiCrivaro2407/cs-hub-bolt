@@ -139,6 +139,7 @@ export function LoopDetalle({ loop, escuela }: { loop: Loop; escuela: Escuela })
           }}
           paraEditable={false}
           textoBoton="Enviar y cerrar loop"
+          citado={{ autor: quienEspera?.nombre ?? escuela.nombre, fecha: loop.creado, cuerpo: loop.que_pidio }}
           onEnviar={(envio) => ejecutar(() => responderLoop(ctx, loop, escuela, envio), 'Respuesta enviada y loop cerrado')}
           onCerrar={() => setResponder(false)}
         />
