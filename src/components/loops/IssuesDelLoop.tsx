@@ -60,7 +60,7 @@ export function IssuesDelLoop({ loop, escuela }: { loop: Loop; escuela: Escuela 
       )}
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <div className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-white p-3">
+        <div className="flex min-w-0 flex-col gap-2 rounded-lg border border-slate-200 bg-white p-3">
           <label className="text-xs font-medium text-slate-700" htmlFor={`ligar-${loop.id}`}>
             Ligar issue existente
           </label>
@@ -78,7 +78,7 @@ export function IssuesDelLoop({ loop, escuela }: { loop: Loop; escuela: Escuela 
             </Boton>
           </div>
         </div>
-        <form onSubmit={crearTech} className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-white p-3">
+        <form onSubmit={crearTech} className="flex min-w-0 flex-col gap-2 rounded-lg border border-slate-200 bg-white p-3">
           <label className="text-xs font-medium text-slate-700" htmlFor={`tech-${loop.id}`}>
             Crear issue en Tech
           </label>

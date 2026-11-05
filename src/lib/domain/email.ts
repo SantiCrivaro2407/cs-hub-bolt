@@ -8,3 +8,8 @@ export function emailEsDeStaff(email: string, dominio: string): boolean {
 }
 
 export const AVISO_SOLO_STAFF = 'Solo se puede escribir a direcciones de staff de la escuela';
+
+/** Formato básico de una dirección: algo@dominio.ext, sin espacios. */
+export function emailConFormato(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+}

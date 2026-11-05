@@ -7,7 +7,7 @@ import { X } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { useHub } from '@/context/HubContext';
 import { cambiarEstadoTicket, cambiarOwnerTicket } from '@/lib/actions/tickets';
-import { rutaEscuela } from '@/lib/domain/cartera';
+import { rutaEscuela, etiquetaMiembro } from '@/lib/domain/cartera';
 import { diasEntre, fechaHora, hacePlural } from '@/lib/domain/dates';
 import { ticketVencido } from '@/lib/domain/loops';
 import type { Escuela, EstadoTicket, HubData, Ticket } from '@/lib/types';
@@ -163,7 +163,7 @@ export function TicketDetalle({ ticket, escuela, onCerrar, onResponder, onCrearL
             >
               {datos.equipo.map((m) => (
                 <option key={m.id} value={m.id}>
-                  {m.nombre}
+                  {etiquetaMiembro(datos.equipo, m)}
                 </option>
               ))}
             </select>

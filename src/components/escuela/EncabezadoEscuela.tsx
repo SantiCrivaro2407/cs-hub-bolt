@@ -4,6 +4,7 @@ import { Enlace } from '@/components/ui/Enlace';
 import { cambiarEtapaEscuela, cambiarOwnerEscuela } from '@/lib/actions/escuelas';
 import { resumenHealth } from '@/lib/domain/health';
 import type { Escuela, Etapa } from '@/lib/types';
+import { etiquetaMiembro } from '@/lib/domain/cartera';
 
 const ETAPAS: Etapa[] = ['Piloto', 'Onboarding', 'Live', 'Renovación'];
 
@@ -60,7 +61,7 @@ export function EncabezadoEscuela({ escuela }: { escuela: Escuela }) {
             >
               {datos.equipo.map((m) => (
                 <option key={m.id} value={m.id}>
-                  {m.nombre}
+                  {etiquetaMiembro(datos.equipo, m)}
                 </option>
               ))}
             </select>

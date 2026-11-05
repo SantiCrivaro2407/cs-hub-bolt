@@ -8,6 +8,7 @@ import { diasEntre, hacePlural } from '@/lib/domain/dates';
 import { ticketVencido } from '@/lib/domain/loops';
 import { navegar, urlConParams, useRuta } from '@/lib/router';
 import type { EstadoTicket } from '@/lib/types';
+import { etiquetaMiembro } from '@/lib/domain/cartera';
 
 const ORDEN_ESTADO: Record<EstadoTicket, number> = { Nuevo: 0, 'En curso': 1, Resuelto: 2 };
 const campo =
@@ -70,7 +71,7 @@ export function TicketsPanel({ escuelaId }: { escuelaId?: string }) {
           <option value="">Todos los owners</option>
           {datos.equipo.map((m) => (
             <option key={m.id} value={m.id}>
-              {m.nombre}
+              {etiquetaMiembro(datos.equipo, m)}
             </option>
           ))}
         </select>

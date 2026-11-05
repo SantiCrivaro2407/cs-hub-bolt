@@ -1,4 +1,4 @@
-import type { Escuela, HubData, Loop, Ticket } from '@/lib/types';
+import type { Equipo, Escuela, HubData, Loop, Ticket } from '@/lib/types';
 import { issueResuelta, loopVencido, ticketVencido } from '@/lib/domain/loops';
 import { resumenHealth, type ResumenHealth } from '@/lib/domain/health';
 
@@ -61,4 +61,10 @@ export function nombreEquipo(datos: HubData, id: string | null): string {
 
 export function rutaEscuela(escuela: Pick<Escuela, 'slug'>, pestana: string, extra: Record<string, string> = {}): string {
   return `/escuelas/${escuela.slug}?${new URLSearchParams({ tab: pestana, ...extra })}`;
+}
+
+/** Nombre para mostrar en un selector; si dos personas se llaman igual, se agrega el email para distinguirlas. */
+export function etiquetaMiembro(equipo: Equipo[], miembro: Equipo): string {
+  const repetido = equipo.some((m) => m.id !== miembro.id && m.nombre === miembro.nombre);
+  return repetido ? `${miembro.nombre} (${miembro.email})` : miembro.nombre;
 }

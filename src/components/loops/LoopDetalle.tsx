@@ -9,6 +9,7 @@ import { comentarLoop, cambiarOwnerLoop, responderLoop } from '@/lib/actions/loo
 import { diasEntre, fechaHora, hacePlural } from '@/lib/domain/dates';
 import { ETIQUETA_ORIGEN, loopVencido } from '@/lib/domain/loops';
 import type { Escuela, Loop } from '@/lib/types';
+import { etiquetaMiembro } from '@/lib/domain/cartera';
 
 const campo = 'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-900';
 
@@ -68,7 +69,7 @@ export function LoopDetalle({ loop, escuela }: { loop: Loop; escuela: Escuela })
           >
             {datos.equipo.map((m) => (
               <option key={m.id} value={m.id}>
-                {m.nombre}
+                {etiquetaMiembro(datos.equipo, m)}
               </option>
             ))}
           </select>
