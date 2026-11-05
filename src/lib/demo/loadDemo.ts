@@ -12,9 +12,19 @@ const CHUNK = 200;
 
 type Fila = object;
 
-async function insertar(tabla: string, filas: Fila[]): Promise<void> {
+// PGRST204: la columna no existe. Pasa si la base todavía no tiene la última migración.
+const COLUMNA_INEXISTENTE = 'PGRST204';
+
+/** Inserta en tandas. Si la base no tiene alguna columna `opcional`, la saca y reintenta sin ella. */
+async function insertar(tabla: string, filas: Fila[], opcionales: string[] = []): Promise<void> {
   for (let i = 0; i < filas.length; i += CHUNK) {
-    const { error } = await supabase.from(tabla).insert(filas.slice(i, i + CHUNK));
+    const tanda = filas.slice(i, i + CHUNK);
+    let { error } = await supabase.from(tabla).insert(tanda);
+    if (error?.code === COLUMNA_INEXISTENTE && opcionales.length > 0) {
+      console.warn(`${tabla}: falta aplicar la última migración, se carga sin ${opcionales.join(', ')}`);
+      const sinOpcionales = tanda.map((fila) => Object.fromEntries(Object.entries(fila).filter(([clave]) => !opcionales.includes(clave))));
+      ({ error } = await supabase.from(tabla).insert(sinOpcionales));
+    }
     if (error) throw new Error(`No se pudo cargar ${tabla}: ${error.message}`);
   }
 }
@@ -90,9 +100,24 @@ export async function cargarDatosDemo(equipo: Equipo[]): Promise<void> {
         owner_id: idEquipo(e.owner),
         creado: haceIso(t.hace),
         actualizado: haceIso(ultimaRespuesta?.hace ?? t.hace),
+        // Demo: links con el formato de PostHog que no apuntan a grabaciones reales.
+        grabacion_url: `https://us.posthog.com/replay/${ticketId}`,
       });
       for (const r of t.respuestas ?? []) {
         mensajes.push({ id: nuevoId(), ticket_id: ticketId, autor: r.autor, cuerpo: r.cuerpo, fecha: haceIso(r.hace) });
+        // La respuesta también sale como email, igual que cuando se responde desde el hub.
+        interacciones.push({
+          id: nuevoId(),
+          escuela_id: escuelaId,
+          tipo: 'email_enviado',
+          titulo: `Re: ${t.asunto}`,
+          autor: r.autor,
+          fecha: haceIso(r.hace),
+          cuerpo: `Para: ${t.contacto}@${e.dominio}\n\n${r.cuerpo}`,
+          duracion_min: null,
+          action_items: [],
+          ticket_id: ticketId,
+        });
       }
       const interaccionId = nuevoId();
       if (t.origenDeLoop) origenes.set(t.origenDeLoop, interaccionId);
@@ -181,16 +206,17 @@ export async function cargarDatosDemo(equipo: Equipo[]): Promise<void> {
     asignado: i.asignado,
     actualizada: haceIso(i.hace),
     loop_id: i.loop ?? null,
+    descripcion: i.descripcion ?? null,
   }));
 
   await insertar('escuelas', escuelas);
   await insertar('contactos', contactos);
-  await insertar('tickets', tickets);
+  await insertar('tickets', tickets, ['grabacion_url']);
   await insertar('ticket_mensajes', mensajes);
   await insertar('interacciones', interacciones);
   await insertar('loops', loops);
   await insertar('loop_estados', estados);
-  await insertar('issues', issues);
+  await insertar('issues', issues, ['descripcion']);
   await insertar('ficha_campos', fichas);
   await insertar('health_snapshots', salud);
 }

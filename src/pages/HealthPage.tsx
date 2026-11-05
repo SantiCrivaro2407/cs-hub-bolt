@@ -1,7 +1,5 @@
 import { useMemo } from 'react';
 import { ArrowDownRight, ArrowRight, ArrowUpRight } from 'lucide-react';
-import { LeyendaHealth } from '@/components/health/LeyendaHealth';
-import { SelectorVista, useVistaHealth } from '@/components/health/VistaHealth';
 import { Avatar } from '@/components/ui/Insignias';
 import { Enlace } from '@/components/ui/Enlace';
 import { HealthGauge, TONO_HEALTH, tonoHealth } from '@/components/ui/HealthGauge';
@@ -20,7 +18,7 @@ function Tendencia({ delta }: { delta: number | null }) {
 
 const COLUMNAS = 'md:grid-cols-[minmax(0,1fr)_88px_repeat(4,96px)]';
 
-/** Vista lista: una fila por escuela con el total y un arco por estándar. */
+/** Una fila por escuela con el total y un arco por estándar. */
 function ListaCartera({ resumenes }: { resumenes: ResumenEscuela[] }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-card">
@@ -68,61 +66,17 @@ function ListaCartera({ resumenes }: { resumenes: ResumenEscuela[] }) {
   );
 }
 
-/** Vista canvas: escuela × estándar, un cuadradito por valor. */
-function CanvasCartera({ resumenes }: { resumenes: ResumenEscuela[] }) {
-  const columnas = [{ key: 'total', label: 'Health' } as const, ...CATEGORIAS_HEALTH];
-  return (
-    <div className="overflow-x-auto rounded-2xl border border-border bg-card p-4">
-      <div className="grid min-w-[560px] grid-cols-[minmax(160px,1.6fr)_repeat(5,minmax(56px,1fr))] gap-1.5">
-        <span />
-        {columnas.map((c) => (
-          <span key={c.key} className="truncate pb-1 text-center text-xs font-medium uppercase tracking-wide text-muted-foreground" title={c.label}>
-            {c.label}
-          </span>
-        ))}
-        {resumenes.map(({ escuela, health }) => (
-          <Enlace key={escuela.id} href={rutaEscuela(escuela, 'health', { vista: 'canvas' })} className="group contents">
-            <span className="flex min-w-0 items-center gap-2 pr-2">
-              <Avatar iniciales={escuela.iniciales} />
-              <span className="truncate text-sm font-medium group-hover:underline">{escuela.nombre}</span>
-            </span>
-            {columnas.map((c) => {
-              const valor = c.key === 'total' ? health.total : health.actual ? health.actual[c.key] : null;
-              return (
-                <span
-                  key={c.key}
-                  title={`${escuela.nombre} · ${c.label}: ${valor ?? 'sin datos'}`}
-                  className={`flex h-11 items-center justify-center rounded-md text-sm font-semibold tabular-nums transition-transform group-hover:scale-[1.03] ${
-                    TONO_HEALTH[tonoHealth(valor)].celda
-                  } ${c.key === 'total' ? 'ring-1 ring-inset ring-foreground/10' : ''}`}
-                >
-                  {valor ?? '–'}
-                </span>
-              );
-            })}
-          </Enlace>
-        ))}
-      </div>
-      <LeyendaHealth />
-    </div>
-  );
-}
-
 export function HealthPage() {
   const { datos } = useHub();
-  const [vista, setVista] = useVistaHealth();
   const resumenes = useMemo(() => ordenarCartera(datos.escuelas.map((e) => resumenEscuela(datos, e))), [datos]);
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl">Health</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Actividad, Engagement, Calidad y Cobertura de cada escuela. Primero las que necesitan atención.</p>
-        </div>
-        <SelectorVista vista={vista} onCambiar={setVista} />
+      <div>
+        <h1 className="text-2xl">Health</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Actividad, Engagement, Calidad y Cobertura de cada escuela. Primero las que necesitan atención.</p>
       </div>
-      {vista === 'lista' ? <ListaCartera resumenes={resumenes} /> : <CanvasCartera resumenes={resumenes} />}
+      <ListaCartera resumenes={resumenes} />
     </div>
   );
 }

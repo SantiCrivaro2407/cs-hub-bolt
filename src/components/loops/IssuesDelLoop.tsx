@@ -1,10 +1,13 @@
 import { useState, type FormEvent } from 'react';
+import { BotonLinear } from '@/components/issues/IssueDetalle';
 import { Boton } from '@/components/ui/Boton';
+import { Enlace } from '@/components/ui/Enlace';
 import { EstadoIssueBadge, Pill } from '@/components/ui/Insignias';
 import { useHub } from '@/context/HubContext';
 import { crearIssueTech, ligarIssue } from '@/lib/actions/loops';
 import type { Escuela, Issue, Loop } from '@/lib/types';
 import { issueResuelta } from '@/lib/domain/loops';
+import { rutaEscuela } from '@/lib/domain/cartera';
 
 const campo = 'rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-900';
 
@@ -39,7 +42,9 @@ export function IssuesDelLoop({ loop, escuela }: { loop: Loop; escuela: Escuela 
           {ligadas.map((issue) => (
             <li key={issue.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5">
               <div className="min-w-0">
-                <p className="text-sm text-slate-900">{issue.titulo}</p>
+                <Enlace href={rutaEscuela(escuela, 'issues', { issue: issue.id })} className="text-sm text-slate-900 hover:underline">
+                  {issue.titulo}
+                </Enlace>
                 <p className="font-mono text-xs text-slate-500">
                   {issue.id} · {issue.equipo}
                 </p>
@@ -47,6 +52,7 @@ export function IssuesDelLoop({ loop, escuela }: { loop: Loop; escuela: Escuela 
               <div className="flex items-center gap-2">
                 {issueResuelta(issue) && <Pill tono="verde">Resuelta</Pill>}
                 <EstadoIssueBadge estado={issue.estado} />
+                <BotonLinear item={issue} compacto />
               </div>
             </li>
           ))}

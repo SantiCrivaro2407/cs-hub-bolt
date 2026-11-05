@@ -146,6 +146,8 @@ export interface Ticket {
   owner_id: string | null;
   creado: string;
   actualizado: string;
+  // Link a la grabación de PostHog de la sesión en la que se abrió el ticket.
+  grabacion_url?: string | null;
 }
 
 export interface TicketMensaje {
@@ -168,6 +170,8 @@ export interface Loop {
   estado: EstadoLoop;
   creado: string;
   cerrado: string | null;
+  // Cada loop es una issue de Linear; si falta el link se arma con el id (ver urlLinear).
+  url?: string | null;
 }
 
 export interface LoopEstado {
@@ -186,6 +190,9 @@ export interface Issue {
   asignado: string;
   actualizada: string;
   loop_id: string | null;
+  descripcion?: string | null;
+  // Link directo a Linear; si falta se arma con el id (ver urlLinear).
+  url?: string | null;
 }
 
 export interface Integracion {

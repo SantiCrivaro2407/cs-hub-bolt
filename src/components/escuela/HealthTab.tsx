@@ -1,14 +1,11 @@
 import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { HealthGrafico } from '@/components/escuela/HealthGrafico';
-import { LeyendaHealth } from '@/components/health/LeyendaHealth';
-import { SelectorVista, useVistaHealth } from '@/components/health/VistaHealth';
 import { HealthChip } from '@/components/ui/Insignias';
 import { Boton } from '@/components/ui/Boton';
 import { HealthGauge, TONO_HEALTH, tonoHealth } from '@/components/ui/HealthGauge';
 import { useHub } from '@/context/HubContext';
 import { useToast } from '@/context/ToastContext';
-import { fechaCorta } from '@/lib/domain/dates';
 import { CATEGORIAS_HEALTH, formatoDelta, resumenHealth, type CategoriaKey } from '@/lib/domain/health';
 import type { Escuela, HealthMetricas, HealthSnapshot } from '@/lib/types';
 
@@ -60,7 +57,7 @@ function detalleCategoria(clave: CategoriaKey, m: HealthMetricas): [string, stri
   }
 }
 
-/** Vista lista: una fila por estándar con su arco, el resumen y el detalle desplegable. */
+/** Una fila por estándar con su arco, el resumen y el detalle desplegable. */
 function FilaEstandar({ etiqueta, clave, actual, referencia }: { etiqueta: string; clave: CategoriaKey; actual: HealthSnapshot; referencia: HealthSnapshot | null }) {
   const [abierta, setAbierta] = useState(false);
   const puntaje = actual[clave];
@@ -94,49 +91,9 @@ function FilaEstandar({ etiqueta, clave, actual, referencia }: { etiqueta: strin
   );
 }
 
-/** Vista canvas: estándar × semana, un cuadradito por medición. */
-function CanvasEstandares({ historia }: { historia: HealthSnapshot[] }) {
-  const semanas = historia.slice(-8);
-  const ultima = semanas.length - 1;
-  return (
-    <div className="overflow-x-auto rounded-2xl border border-border bg-card p-4">
-      <div className="grid w-max grid-cols-[120px_repeat(8,56px)] gap-1.5 sm:grid-cols-[140px_repeat(8,64px)]">
-        <span />
-        {semanas.map((s, i) => (
-          <span key={s.id} className="pb-1 text-center text-xs text-muted-foreground">
-            {i === ultima ? 'Hoy' : fechaCorta(s.fecha)}
-          </span>
-        ))}
-        {CATEGORIAS_HEALTH.map((c) => (
-          <FilaCanvas key={c.key} etiqueta={c.label} valores={semanas.map((s) => s[c.key])} />
-        ))}
-      </div>
-      <LeyendaHealth />
-    </div>
-  );
-}
-
-function FilaCanvas({ etiqueta, valores }: { etiqueta: string; valores: number[] }) {
-  return (
-    <>
-      <span className="flex items-center text-sm font-medium">{etiqueta}</span>
-      {valores.map((v, i) => (
-        <span
-          key={i}
-          title={`${etiqueta}: ${v}`}
-          className={`flex aspect-square items-center justify-center rounded-md text-sm font-semibold tabular-nums ${TONO_HEALTH[tonoHealth(v)].celda}`}
-        >
-          {v}
-        </span>
-      ))}
-    </>
-  );
-}
-
 export function HealthTab({ escuela }: { escuela: Escuela }) {
   const { datos } = useHub();
   const { mostrar } = useToast();
-  const [vista, setVista] = useVistaHealth();
   const resumen = resumenHealth(datos.snapshots.filter((s) => s.escuela_id === escuela.id));
   const actual = resumen.actual;
 
@@ -163,19 +120,12 @@ export function HealthTab({ escuela }: { escuela: Escuela }) {
       </div>
 
       <section className="flex flex-col gap-3">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-lg">Estándares</h2>
-          <SelectorVista vista={vista} onCambiar={setVista} />
-        </div>
-        {vista === 'lista' ? (
-          <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
-            {CATEGORIAS_HEALTH.map((c) => (
-              <FilaEstandar key={c.key} etiqueta={c.label} clave={c.key} actual={actual} referencia={resumen.referencia} />
-            ))}
-          </ul>
-        ) : (
-          <CanvasEstandares historia={resumen.historia} />
-        )}
+        <h2 className="text-lg">Estándares</h2>
+        <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
+          {CATEGORIAS_HEALTH.map((c) => (
+            <FilaEstandar key={c.key} etiqueta={c.label} clave={c.key} actual={actual} referencia={resumen.referencia} />
+          ))}
+        </ul>
       </section>
 
       <p className="text-xs text-muted-foreground">

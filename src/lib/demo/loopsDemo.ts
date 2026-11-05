@@ -20,6 +20,7 @@ export interface IssueDemo {
   asignado: string;
   hace: number;
   loop?: string;
+  descripcion?: string;
 }
 
 export const LOOPS_DEMO: LoopDemo[] = [
@@ -179,24 +180,24 @@ export const LOOPS_DEMO: LoopDemo[] = [
 ];
 
 export const ISSUES_DEMO: IssueDemo[] = [
-  { id: 'CS-147', escuela: 'bsrjzs', titulo: 'Habilitar admin de Botafogo', equipo: 'CS', estado: 'Done', asignado: 'Santiago', hace: 17, loop: 'L-BZS-02' },
-  { id: 'CS-171', escuela: 'bsrjzs', titulo: 'Revisar archivos DNA de la escuela', equipo: 'CS', estado: 'Done', asignado: 'Santiago', hace: 16, loop: 'L-BZS-02' },
-  { id: 'CS-182', escuela: 'bsrjzs', titulo: 'Agendar onboarding de Year 7', equipo: 'CS', estado: 'In Progress', asignado: 'Santiago', hace: 3, loop: 'L-BZS-01' },
-  { id: 'TECH-1755', escuela: 'bsrjzs', titulo: 'Sincronización de roster Botafogo', equipo: 'Tech', estado: 'Todo', asignado: 'Franco', hace: 2 },
-  { id: 'CS-140', escuela: 'aleph', titulo: 'Calendario académico cargado', equipo: 'CS', estado: 'Done', asignado: 'Ignacio', hace: 16 },
-  { id: 'TECH-1790', escuela: 'aleph', titulo: 'Exportar observaciones a Excel', equipo: 'Tech', estado: 'Backlog', asignado: 'Sin asignar', hace: 6, loop: 'L-ALE-01' },
-  { id: 'TECH-1744', escuela: 'clc', titulo: 'Orden alfabético de materias en reportes', equipo: 'Tech', estado: 'Done', asignado: 'Franco', hace: 3, loop: 'L-COL-02' },
-  { id: 'CS-180', escuela: 'clc', titulo: 'Estándares dentro de observaciones de Experiencias', equipo: 'CS', estado: 'In Progress', asignado: 'Marco', hace: 4, loop: 'L-COL-01' },
-  { id: 'CS-155', escuela: 'clc', titulo: 'Exportar reportes en PDF', equipo: 'CS', estado: 'In Review', asignado: 'Marco', hace: 6 },
-  { id: 'CS-169', escuela: 'st-francis', titulo: 'Objetivos de PE y Portugués en observaciones', equipo: 'CS', estado: 'Done', asignado: 'Santiago', hace: 13, loop: 'L-SF-01' },
-  { id: 'TECH-1771', escuela: 'st-francis', titulo: 'Subida de audios desde Android', equipo: 'Tech', estado: 'In Progress', asignado: 'Franco', hace: 1, loop: 'L-SF-02' },
-  { id: 'CS-178', escuela: 'ccb', titulo: 'Formato de carga del calendario', equipo: 'CS', estado: 'Todo', asignado: 'Ignacio', hace: 7, loop: 'L-CCB-02' },
-  { id: 'TECH-1700', escuela: 'ccb', titulo: 'Feed desde el SIS', equipo: 'Tech', estado: 'Canceled', asignado: 'Franco', hace: 40 },
-  { id: 'CS-173', escuela: 'cfw', titulo: 'Correcciones de la versión en galés', equipo: 'CS', estado: 'Done', asignado: 'Marco', hace: 9, loop: 'L-TLG-02' },
-  { id: 'CS-181', escuela: 'cfw', titulo: 'Leyenda de Evolution en galés', equipo: 'CS', estado: 'In Progress', asignado: 'Marco', hace: 2, loop: 'L-TLG-02' },
-  { id: 'CS-184', escuela: 'cfw', titulo: 'Invitación a revisores', equipo: 'CS', estado: 'Todo', asignado: 'Marco', hace: 15, loop: 'L-TLG-01' },
-  { id: 'CS-160', escuela: 'cfw', titulo: 'Traducción de Evolution', equipo: 'CS', estado: 'Backlog', asignado: 'Marco', hace: 12 },
-  { id: 'CS-176', escuela: 'casa-amarilla', titulo: 'Plan de expansión a sala 3', equipo: 'CS', estado: 'Backlog', asignado: 'Marco', hace: 5 },
-  { id: 'TECH-1760', escuela: 'bsrjb', titulo: 'Currículo Primary y Nursery en IB', equipo: 'Tech', estado: 'In Progress', asignado: 'Franco', hace: 6, loop: 'L-BB-02' },
-  { id: 'CS-185', escuela: 'bsrjb', titulo: 'Agendar capacitación de staff', equipo: 'CS', estado: 'In Progress', asignado: 'Santiago', hace: 2, loop: 'L-BB-03' },
+  { id: 'CS-147', escuela: 'bsrjzs', titulo: 'Habilitar admin de Botafogo', equipo: 'CS', estado: 'Done', asignado: 'Santiago', hace: 17, loop: 'L-BZS-02', descripcion: 'Dar permisos de admin a la coordinación de Botafogo para que pueda invitar docentes sin pasar por CS.' },
+  { id: 'CS-171', escuela: 'bsrjzs', titulo: 'Revisar archivos DNA de la escuela', equipo: 'CS', estado: 'Done', asignado: 'Santiago', hace: 16, loop: 'L-BZS-02', descripcion: 'Revisar que los archivos DNA (terminología, metodología, estructura) reflejen lo acordado en el kickoff.' },
+  { id: 'CS-182', escuela: 'bsrjzs', titulo: 'Agendar onboarding de Year 7', equipo: 'CS', estado: 'In Progress', asignado: 'Santiago', hace: 3, loop: 'L-BZS-01', descripcion: 'Coordinar fecha y agenda del onboarding para los docentes de Year 7. Esperamos confirmación de la coordinadora.' },
+  { id: 'TECH-1755', escuela: 'bsrjzs', titulo: 'Sincronización de roster Botafogo', equipo: 'Tech', estado: 'Todo', asignado: 'Franco', hace: 2, descripcion: 'El roster de Botafogo no se sincroniza desde el SIS desde el lunes. Faltan 12 alumnos nuevos de Year 3.' },
+  { id: 'CS-140', escuela: 'aleph', titulo: 'Calendario académico cargado', equipo: 'CS', estado: 'Done', asignado: 'Ignacio', hace: 16, descripcion: 'Cargar el calendario académico 2026 con los períodos de evaluación.' },
+  { id: 'TECH-1790', escuela: 'aleph', titulo: 'Exportar observaciones a Excel', equipo: 'Tech', estado: 'Backlog', asignado: 'Sin asignar', hace: 6, loop: 'L-ALE-01', descripcion: 'La escuela pide exportar las observaciones de un grupo a Excel para el informe trimestral. Definir columnas y permisos.' },
+  { id: 'TECH-1744', escuela: 'clc', titulo: 'Orden alfabético de materias en reportes', equipo: 'Tech', estado: 'Done', asignado: 'Franco', hace: 3, loop: 'L-COL-02', descripcion: 'Los reportes muestran las materias en el orden de carga; la escuela las quiere en orden alfabético.' },
+  { id: 'CS-180', escuela: 'clc', titulo: 'Estándares dentro de observaciones de Experiencias', equipo: 'CS', estado: 'In Progress', asignado: 'Marco', hace: 4, loop: 'L-COL-01', descripcion: 'Mostrar los estándares vinculados dentro de cada observación de Experiencias, como ya pasa en las observaciones de clase.' },
+  { id: 'CS-155', escuela: 'clc', titulo: 'Exportar reportes en PDF', equipo: 'CS', estado: 'In Review', asignado: 'Marco', hace: 6, descripcion: 'Permitir descargar los reportes de Evolution en PDF para compartir con familias.' },
+  { id: 'CS-169', escuela: 'st-francis', titulo: 'Objetivos de PE y Portugués en observaciones', equipo: 'CS', estado: 'Done', asignado: 'Santiago', hace: 13, loop: 'L-SF-01', descripcion: 'Agregar los objetivos de PE y Portugués al currículo para que aparezcan al observar.' },
+  { id: 'TECH-1771', escuela: 'st-francis', titulo: 'Subida de audios desde Android', equipo: 'Tech', estado: 'In Progress', asignado: 'Franco', hace: 1, loop: 'L-SF-02', descripcion: 'Los docentes con Android no pueden subir audios mayores a 1 minuto: la subida queda colgada al 90 %.' },
+  { id: 'CS-178', escuela: 'ccb', titulo: 'Formato de carga del calendario', equipo: 'CS', estado: 'Todo', asignado: 'Ignacio', hace: 7, loop: 'L-CCB-02', descripcion: 'Acordar con la escuela el formato del archivo para cargar el calendario (fechas en DD/MM).' },
+  { id: 'TECH-1700', escuela: 'ccb', titulo: 'Feed desde el SIS', equipo: 'Tech', estado: 'Canceled', asignado: 'Franco', hace: 40, descripcion: 'Integración del feed del SIS. Cancelada: la escuela cambia de SIS el año que viene.' },
+  { id: 'CS-173', escuela: 'cfw', titulo: 'Correcciones de la versión en galés', equipo: 'CS', estado: 'Done', asignado: 'Marco', hace: 9, loop: 'L-TLG-02', descripcion: 'Aplicar las correcciones de traducción que mandó la escuela para la versión en galés.' },
+  { id: 'CS-181', escuela: 'cfw', titulo: 'Leyenda de Evolution en galés', equipo: 'CS', estado: 'In Progress', asignado: 'Marco', hace: 2, loop: 'L-TLG-02', descripcion: 'Traducir la leyenda de los niveles de Evolution al galés.' },
+  { id: 'CS-184', escuela: 'cfw', titulo: 'Invitación a revisores', equipo: 'CS', estado: 'Todo', asignado: 'Marco', hace: 15, loop: 'L-TLG-01', descripcion: 'Invitar a los dos revisores externos que validan la traducción al galés.' },
+  { id: 'CS-160', escuela: 'cfw', titulo: 'Traducción de Evolution', equipo: 'CS', estado: 'Backlog', asignado: 'Marco', hace: 12, descripcion: 'Traducción completa de los textos de Evolution al galés.' },
+  { id: 'CS-176', escuela: 'casa-amarilla', titulo: 'Plan de expansión a sala 3', equipo: 'CS', estado: 'Backlog', asignado: 'Marco', hace: 5, descripcion: 'Armar la propuesta para sumar la sala de 3 al uso de la plataforma el próximo ciclo.' },
+  { id: 'TECH-1760', escuela: 'bsrjb', titulo: 'Currículo Primary y Nursery en IB', equipo: 'Tech', estado: 'In Progress', asignado: 'Franco', hace: 6, loop: 'L-BB-02', descripcion: 'Cargar el currículo IB de Primary y Nursery con sus learner profiles.' },
+  { id: 'CS-185', escuela: 'bsrjb', titulo: 'Agendar capacitación de staff', equipo: 'CS', estado: 'In Progress', asignado: 'Santiago', hace: 2, loop: 'L-BB-03', descripcion: 'Agendar la capacitación de staff de Barra con el equipo de coordinación.' },
 ];
