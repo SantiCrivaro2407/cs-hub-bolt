@@ -21,6 +21,8 @@ export interface Equipo {
   id: string;
   nombre: string;
   email: string;
+  // Cuenta de auth.users atada al miembro (migración de seguridad); null hasta que se reclama.
+  user_id?: string | null;
 }
 
 export interface Escuela {

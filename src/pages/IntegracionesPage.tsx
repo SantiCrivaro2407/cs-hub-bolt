@@ -12,7 +12,8 @@ import type { Integracion, ProveedorIntegracion } from '@/lib/types';
 const MOTIVOS_ERROR: Record<string, string> = {
   access_denied: 'No diste permiso en Google.',
   sin_refresh_token: 'Google no devolvió acceso permanente. Probá conectar de nuevo.',
-  state_invalido: 'El link de conexión venció. Probá de nuevo.',
+  state_invalido: 'El link de conexión venció o ya se usó. Probá de nuevo.',
+  cuenta_distinta: 'Elegiste otra cuenta de Google. Conectá el Gmail con el mismo email de tu usuario.',
 };
 
 function EstadoIntegracion({ integracion }: { integracion: Integracion | null }) {

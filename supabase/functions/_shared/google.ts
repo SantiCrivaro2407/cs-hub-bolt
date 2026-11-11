@@ -67,18 +67,30 @@ function desdeBase64url(texto: string): Uint8Array<ArrayBuffer> {
   return Uint8Array.from(atob(normal + '='.repeat((4 - (normal.length % 4)) % 4)), (c) => c.charCodeAt(0));
 }
 
-export async function firmarState(equipoId: string): Promise<string> {
-  const datos = base64url(new TextEncoder().encode(JSON.stringify({ e: equipoId, t: Date.now() })));
+export interface DatosState {
+  equipoId: string;
+  nonce: string;
+}
+
+/** El nonce se guarda en oauth_estados y se consume en la vuelta: cada state sirve una sola vez. */
+export async function firmarState({ equipoId, nonce }: DatosState): Promise<string> {
+  const datos = base64url(new TextEncoder().encode(JSON.stringify({ e: equipoId, n: nonce, t: Date.now() })));
   const firma = new Uint8Array(await crypto.subtle.sign('HMAC', await clave(), new TextEncoder().encode(datos)));
   return `${datos}.${base64url(firma)}`;
 }
 
-/** Devuelve el equipo_id si la firma es válida y el state tiene menos de 15 minutos. */
-export async function verificarState(state: string): Promise<string | null> {
+/** Devuelve equipo_id y nonce si la firma es válida y el state tiene menos de 15 minutos. */
+export async function verificarState(state: string): Promise<DatosState | null> {
   const [datos, firma] = state.split('.');
   if (!datos || !firma) return null;
-  const valida = await crypto.subtle.verify('HMAC', await clave(), desdeBase64url(firma), new TextEncoder().encode(datos));
-  if (!valida) return null;
-  const { e, t } = JSON.parse(new TextDecoder().decode(desdeBase64url(datos)));
-  return Date.now() - t < 15 * 60 * 1000 ? e : null;
+  try {
+    const valida = await crypto.subtle.verify('HMAC', await clave(), desdeBase64url(firma), new TextEncoder().encode(datos));
+    if (!valida) return null;
+    const { e, n, t } = JSON.parse(new TextDecoder().decode(desdeBase64url(datos)));
+    if (typeof e !== 'string' || typeof n !== 'string' || typeof t !== 'number') return null;
+    return Date.now() - t < 15 * 60 * 1000 ? { equipoId: e, nonce: n } : null;
+  } catch {
+    // base64 o JSON mal formado: state inválido, no un error 500.
+    return null;
+  }
 }

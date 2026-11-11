@@ -99,3 +99,12 @@ El webhook lee el payload de forma tolerante:
 - "Desconectar" Gmail deja de sincronizar, pero el refresh token queda guardado hasta que se reconecte o se borre la fila. Para revocarlo del todo, quitar el acceso desde la cuenta de Google (myaccount.google.com → Seguridad → Apps de terceros).
 - Los adjuntos no se guardan; solo el cuerpo en texto (si el email es solo HTML, se convierte a texto).
 - Cada búsqueda en Gmail toma hasta 500 mensajes por bloque de 20 contactos. Alcanza para una sync cada 15 minutos; la primera sync de 30 días puede quedar corta en casillas con mucho volumen.
+
+## Seguridad (auditoría del 6/11)
+
+La migración `20261111120000_endurecer_seguridad.sql` y los cambios en las funciones cierran lo que encontró la auditoría. Para que funcione completo, en Supabase hay que revisar:
+
+- **Authentication → Providers → Email:** "Confirm email" y "Secure email change" activados. La membresía ahora queda atada al usuario (`equipo.user_id`), pero un miembro que todavía no se registró se reconoce por su email confirmado: con auto-confirmación, cualquiera que se registre primero con ese email se quedaría con el lugar.
+- **Filas de `equipo` sin dueño real:** los emails de ejemplo `@volantis.example` conviene borrarlos o reemplazarlos por los reales antes de producción.
+- **Google Cloud → OAuth consent screen:** tipo "Internal". Además, la función ahora rechaza conectar un Gmail distinto del email del miembro (`cuenta_distinta`), y cada link de conexión sirve una sola vez.
+- **Contactos:** el sync de Gmail ignora como contacto cualquier email del equipo, de su dominio o de un Gmail conectado, así nadie puede hacer que se copie la casilla de un compañero.
