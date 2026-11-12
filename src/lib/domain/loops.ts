@@ -1,5 +1,6 @@
 import type { EstadoIssue, EstadoLoop, Issue, Loop, OrigenLoop, Ticket } from '@/lib/types';
 import { diasHabilesEntre } from '@/lib/domain/dates';
+import { HOSTS_LINEAR, urlSegura } from '@/lib/domain/urls';
 
 export const ESTADOS_ISSUE: EstadoIssue[] = ['Backlog', 'Todo', 'In Progress', 'In Review', 'Done', 'Canceled'];
 
@@ -75,5 +76,5 @@ const LINEAR_URL = (import.meta.env.VITE_LINEAR_URL as string | undefined) ?? 'h
 
 /** Link a Linear de una issue o de un loop (los loops también son issues de Linear). */
 export function urlLinear(item: Pick<Issue | Loop, 'id' | 'url'>): string {
-  return item.url || `${LINEAR_URL}/issue/${item.id}`;
+  return urlSegura(item.url, HOSTS_LINEAR) ?? `${LINEAR_URL}/issue/${encodeURIComponent(item.id)}`;
 }

@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { cargarHubData } from '@/lib/data/fetchHubData';
+import { supabase } from '@/lib/supabase';
 import { cargarDatosDemo } from '@/lib/demo/loadDemo';
 import type { Avisos, ContextoAccion } from '@/lib/actions/base';
 import type { Equipo, HubData } from '@/lib/types';
@@ -24,6 +25,7 @@ export function HubProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   const email = session?.user.email?.toLowerCase() ?? '';
+  const userId = session?.user.id ?? null;
 
   const refrescar = useCallback(async () => {
     try {
@@ -36,10 +38,19 @@ export function HubProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    refrescar();
+    // Ata la fila del equipo a esta cuenta la primera vez que entra (ver reclamar_membresia en las migraciones).
+    // Si la migración todavía no está aplicada, la RPC no existe y se sigue igual.
+    supabase
+      .rpc('reclamar_membresia')
+      .then(({ error }) => error && console.warn(`reclamar_membresia: ${error.message}`))
+      .then(refrescar);
   }, [refrescar]);
 
-  const yo = datos?.equipo.find((m) => m.email.toLowerCase() === email) ?? null;
+  // Misma regla que la base: primero la fila atada a esta cuenta, después una sin reclamar con este email.
+  const yo =
+    datos?.equipo.find((m) => userId !== null && m.user_id === userId) ??
+    datos?.equipo.find((m) => !m.user_id && m.email.toLowerCase() === email) ??
+    null;
 
   const ctx = useMemo<ContextoAccion | null>(() => (datos && yo ? { datos, yo } : null), [datos, yo]);
 

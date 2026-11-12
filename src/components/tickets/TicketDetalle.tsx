@@ -10,6 +10,7 @@ import { cambiarEstadoTicket, cambiarOwnerTicket } from '@/lib/actions/tickets';
 import { rutaEscuela, etiquetaMiembro } from '@/lib/domain/cartera';
 import { diasEntre, fechaHora, hacePlural } from '@/lib/domain/dates';
 import { ticketVencido } from '@/lib/domain/loops';
+import { HOSTS_POSTHOG, urlSegura } from '@/lib/domain/urls';
 import type { Escuela, EstadoTicket, HubData, Ticket } from '@/lib/types';
 
 const ESTADOS_TICKET: EstadoTicket[] = ['Nuevo', 'En curso', 'Resuelto'];
@@ -64,13 +65,23 @@ function conversacionTicket(datos: HubData, ticket: Ticket): MensajeConversacion
   ].sort((a, b) => a.fecha.localeCompare(b.fecha));
 }
 
-function Grabacion({ url }: { url: string | null | undefined }) {
+function Grabacion({ url: guardada }: { url: string | null | undefined }) {
+  const url = urlSegura(guardada, HOSTS_POSTHOG);
   if (!url) return <p className="text-sm text-slate-500">Este ticket no tiene grabación de PostHog.</p>;
   // Las grabaciones compartidas con "embed" se pueden ver acá mismo; el resto se abre en PostHog.
-  const embebible = url.includes('/embedded/');
+  const embebible = new URL(url).pathname.includes('/embedded/');
   return (
     <div className="flex flex-col gap-3">
-      {embebible && <iframe src={url} title="Grabación de la sesión" className="aspect-video w-full rounded-lg border border-slate-200" allowFullScreen />}
+      {embebible && (
+        <iframe
+          src={url}
+          title="Grabación de la sesión"
+          sandbox="allow-scripts allow-same-origin"
+          referrerPolicy="no-referrer"
+          className="aspect-video w-full rounded-lg border border-slate-200"
+          allowFullScreen
+        />
+      )}
       <a
         href={url}
         target="_blank"

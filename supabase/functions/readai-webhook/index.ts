@@ -3,7 +3,7 @@
 // El token identifica a quién del equipo pertenece el Read AI (se genera en la pantalla Integraciones).
 // Solo se registra si algún participante es un contacto del backoffice; si no, se descarta.
 // Se despliega con --no-verify-jwt: Read AI no manda la sesión de Supabase.
-import { admin, cargarWhitelist, CORS, escuelasDe, extraerEmails, guardarInteracciones, json, type FilaInteraccion } from '../_shared/comun.ts';
+import { admin, cargarWhitelist, CORS, escuelasDe, extraerEmails, guardarInteracciones, json, urlHttps, type FilaInteraccion } from '../_shared/comun.ts';
 
 type Valor = unknown;
 
@@ -94,7 +94,8 @@ Deno.serve(async (req) => {
     origen: 'readai',
     externo_id: sesion,
     para: participantes,
-    enlace: texto(p.report_url, p.reportUrl, p.url) || null,
+    // Solo links https de Read AI: el valor viene del payload y se muestra como link a todo el equipo.
+    enlace: urlHttps(texto(p.report_url, p.reportUrl, p.url), ['read.ai']),
   }));
 
   try {

@@ -2,8 +2,24 @@
 //   POST (con la sesión del backoffice)  → devuelve la URL de consentimiento de Google.
 //   GET  ?code&state (vuelta de Google)  → guarda el refresh token y redirige al backoffice.
 // Se despliega con --no-verify-jwt: la vuelta de Google no trae JWT; el state va firmado.
+import type { SupabaseClient } from 'jsr:@supabase/supabase-js@2';
 import { admin, CORS, env, json, miembroDesdeRequest } from '../_shared/comun.ts';
 import { canjearCodigo, firmarState, gmail, redirectUri, SCOPES_GMAIL, verificarState } from '../_shared/google.ts';
+
+async function nuevoNonce(db: SupabaseClient, equipoId: string): Promise<string> {
+  // De paso se limpian los que nadie usó (el state vence a los 15 minutos).
+  await db.from('oauth_estados').delete().lt('creado', new Date(Date.now() - 60 * 60 * 1000).toISOString());
+  const nonce = crypto.randomUUID();
+  const { error } = await db.from('oauth_estados').insert({ nonce, equipo_id: equipoId });
+  if (error) throw new Error(`No se pudo iniciar la conexión: ${error.message}`);
+  return nonce;
+}
+
+/** Borra el nonce y dice si existía: un state ya usado (o de otro miembro) no vuelve a servir. */
+async function consumirNonce(db: SupabaseClient, equipoId: string, nonce: string): Promise<boolean> {
+  const { data } = await db.from('oauth_estados').delete().eq('nonce', nonce).eq('equipo_id', equipoId).select('nonce');
+  return (data?.length ?? 0) > 0;
+}
 
 function volverAlBackoffice(resultado: 'ok' | 'error', detalle?: string): Response {
   const url = new URL('/integraciones', env('APP_URL'));
@@ -29,7 +45,7 @@ Deno.serve(async (req) => {
       prompt: 'consent', // sin esto Google no reenvía el refresh token en reconexiones
       include_granted_scopes: 'true',
       login_hint: miembro.email,
-      state: await firmarState(miembro.id),
+      state: await firmarState({ equipoId: miembro.id, nonce: await nuevoNonce(db, miembro.id) }),
     }).toString();
     return json({ url: url.toString() });
   }
@@ -37,14 +53,20 @@ Deno.serve(async (req) => {
   const params = new URL(req.url).searchParams;
   if (params.get('error')) return volverAlBackoffice('error', params.get('error') ?? undefined);
 
-  const equipoId = await verificarState(params.get('state') ?? '');
+  const state = await verificarState(params.get('state') ?? '');
   const codigo = params.get('code');
-  if (!equipoId || !codigo) return volverAlBackoffice('error', 'state_invalido');
+  if (!state || !codigo || !(await consumirNonce(db, state.equipoId, state.nonce))) return volverAlBackoffice('error', 'state_invalido');
+  const equipoId = state.equipoId;
 
   try {
     const tokens = await canjearCodigo(codigo);
     if (!tokens.refresh_token) return volverAlBackoffice('error', 'sin_refresh_token');
     const perfil = await gmail<{ emailAddress: string }>(tokens.access_token, 'profile');
+    // Solo se conecta el Gmail del propio miembro: el link de consentimiento no se puede usar para otra casilla.
+    const { data: miembro } = await db.from('equipo').select('email').eq('id', equipoId).maybeSingle();
+    if (!miembro || perfil.emailAddress.toLowerCase() !== String(miembro.email).trim().toLowerCase()) {
+      return volverAlBackoffice('error', 'cuenta_distinta');
+    }
 
     const { data: integracion, error } = await db
       .from('integraciones')

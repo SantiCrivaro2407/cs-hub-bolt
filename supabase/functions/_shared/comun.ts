@@ -32,13 +32,34 @@ export async function miembroDesdeRequest(db: SupabaseClient, req: Request): Pro
   const jwt = req.headers.get('Authorization')?.replace(/^Bearer\s+/i, '');
   if (!jwt) return null;
   const { data } = await db.auth.getUser(jwt);
-  const email = data.user?.email?.toLowerCase();
-  if (!email) return null;
-  const { data: miembro } = await db.from('equipo').select('id, nombre, email').ilike('email', email).maybeSingle();
-  return miembro;
+  const usuario = data.user;
+  if (!usuario) return null;
+  // Misma regla que RLS (mi_equipo_id): la fila atada a este usuario, o una sin reclamar con su email confirmado.
+  // Comparación exacta en código; no usar ilike, donde % _ * del email actuarían como comodines.
+  const { data: equipo } = await db.from('equipo').select('id, nombre, email, user_id');
+  const filas = equipo ?? [];
+  const email = usuario.email?.toLowerCase();
+  const miembro =
+    filas.find((m) => m.user_id === usuario.id) ??
+    (email && usuario.email_confirmed_at ? filas.find((m) => !m.user_id && String(m.email).trim().toLowerCase() === email) : undefined);
+  return miembro ? { id: miembro.id, nombre: miembro.nombre, email: miembro.email } : null;
+}
+
+/** La URL solo si es https y su host es uno de los esperados (o un subdominio). */
+export function urlHttps(valor: string | null | undefined, hosts: string[]): string | null {
+  if (!valor) return null;
+  try {
+    const url = new URL(valor.trim());
+    const host = url.hostname.toLowerCase();
+    return url.protocol === 'https:' && hosts.some((h) => host === h || host.endsWith(`.${h}`)) ? url.toString() : null;
+  } catch {
+    return null;
+  }
 }
 
 const PATRON_EMAIL = /[A-Za-z0-9._%+'-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+/g;
+// Un solo email, sin espacios ni operadores: se usa tal cual en la búsqueda de Gmail.
+const PATRON_EMAIL_EXACTO = /^[a-z0-9._+'-]+@[a-z0-9-]+(?:\.[a-z0-9-]+)+$/;
 
 /** Extrae los emails de un header tipo `"Ana" <ana@x.com>, b@y.com`, en minúscula. */
 export function extraerEmails(texto: string | null | undefined): string[] {
@@ -51,14 +72,30 @@ export interface ContactoWhitelist {
   nombre: string;
 }
 
-/** La whitelist: email de contacto → contactos (un email puede estar cargado en más de una escuela). */
+const dominioDe = (email: string) => email.split('@')[1] ?? '';
+
+/**
+ * La whitelist: email de contacto → contactos (un email puede estar cargado en más de una escuela).
+ * Cualquier miembro puede cargar contactos, así que se descartan las direcciones del propio equipo
+ * (sus emails, el dominio de la empresa y los Gmail conectados): si no, cargar como "contacto" el mail
+ * de un compañero copiaría toda su casilla a interacciones.
+ */
 export async function cargarWhitelist(db: SupabaseClient): Promise<Map<string, ContactoWhitelist[]>> {
-  const { data, error } = await db.from('contactos').select('id, escuela_id, nombre, email').not('email', 'is', null);
+  const [contactos, equipo, cuentas] = await Promise.all([
+    db.from('contactos').select('id, escuela_id, nombre, email').not('email', 'is', null),
+    db.from('equipo').select('email'),
+    db.from('integraciones').select('cuenta').not('cuenta', 'is', null),
+  ]);
+  const error = contactos.error ?? equipo.error ?? cuentas.error;
   if (error) throw new Error(`No se pudieron leer los contactos: ${error.message}`);
+  const emailsEquipo = (equipo.data ?? []).map((m) => String(m.email).trim().toLowerCase());
+  const excluidos = new Set([...emailsEquipo, ...(cuentas.data ?? []).map((c) => String(c.cuenta).trim().toLowerCase())]);
+  const dominiosEquipo = new Set(emailsEquipo.map(dominioDe).filter(Boolean));
+
   const mapa = new Map<string, ContactoWhitelist[]>();
-  for (const c of data ?? []) {
+  for (const c of contactos.data ?? []) {
     const email = String(c.email).trim().toLowerCase();
-    if (!email) continue;
+    if (!PATRON_EMAIL_EXACTO.test(email) || excluidos.has(email) || dominiosEquipo.has(dominioDe(email))) continue;
     mapa.set(email, [...(mapa.get(email) ?? []), { id: c.id, escuela_id: c.escuela_id, nombre: c.nombre }]);
   }
   return mapa;
