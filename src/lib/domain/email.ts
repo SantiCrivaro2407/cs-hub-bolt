@@ -15,3 +15,10 @@ export const AVISO_SOLO_STAFF = 'Solo se puede escribir a direcciones de staff d
 export function emailConFormato(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 }
+
+// Las dos organizaciones que pueden tener cuenta (la base lo vuelve a controlar: ver migración registro_por_dominio).
+export const DOMINIOS_PERMITIDOS = ['volantisedu.com', 'itba.edu.ar'];
+
+export function dominioPermitido(email: string): boolean {
+  return DOMINIOS_PERMITIDOS.includes(email.trim().toLowerCase().split('@')[1] ?? '');
+}

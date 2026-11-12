@@ -73,7 +73,12 @@ export function pendientesEscuela(datos: HubData, escuela: Escuela, ahora = new 
 
   // Mails: conversaciones cuyo último mensaje lo escribió la escuela (si contestó alguien del equipo, ya está).
   // Los de tickets ya están arriba; las respuestas automáticas no cuentan.
-  const dominiosEquipo = [...new Set(datos.equipo.map((m) => m.email.split('@')[1]?.toLowerCase()).filter(Boolean)), ...DOMINIOS_EQUIPO_EXTRA];
+  // Un dominio del equipo que también es el de una escuela (itba.edu.ar) no cuenta como interno.
+  const dominiosEscuelas = new Set(datos.escuelas.flatMap((e) => e.dominio_staff.split(',').map((d) => d.trim().toLowerCase())));
+  const dominiosEquipo = [
+    ...new Set(datos.equipo.map((m) => m.email.split('@')[1]?.toLowerCase()).filter((d) => d && !dominiosEscuelas.has(d))),
+    ...DOMINIOS_EQUIPO_EXTRA,
+  ];
   const escribioLaEscuela = (de: string | null | undefined) => {
     const email = emailDe(de);
     if (!email || REMITENTE_AUTOMATICO.test(email)) return false;
