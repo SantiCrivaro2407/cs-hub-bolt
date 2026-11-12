@@ -143,7 +143,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {confirmarReinicio && (
         <Modal titulo="¿Reiniciar la demo?" onCerrar={() => setConfirmarReinicio(false)}>
-          <p className="text-sm text-muted-foreground">Se van a volver a cargar los datos de ejemplo. Los cambios que hiciste se pierden.</p>
+          <p className="text-sm text-muted-foreground">Se vuelven a cargar las escuelas de ejemplo (Aleph, Casa Amarilla, Curriculum for Wales y CCB) y se pierden los cambios que hiciste en ellas. Los clientes reales no se tocan.</p>
           <div className="mt-6 flex justify-end gap-2">
             <Boton onClick={() => setConfirmarReinicio(false)}>Cancelar</Boton>
             <Boton variante="peligro" onClick={confirmarDemo} disabled={reiniciando}>

@@ -29,16 +29,25 @@ async function insertar(tabla: string, filas: Fila[], opcionales: string[] = [])
   }
 }
 
+// Las escuelas de ejemplo que conviven con los clientes reales. "Reiniciar demo" solo borra y recarga estas;
+// las demás de ESCUELAS_DEMO son clientes reales y sus datos vienen de Gmail y Linear.
+export const SLUGS_DEMO = ['aleph', 'casa-amarilla', 'cfw', 'ccb'];
+const esDemo = (slug: string) => SLUGS_DEMO.includes(slug);
+// Las issues de ejemplo llevan prefijo para no chocar con los ids reales de Linear.
+export const PREFIJO_ISSUE_DEMO = 'DEMO-';
+
 export async function cargarDatosDemo(equipo: Equipo[]): Promise<void> {
-  const { error: resetError } = await supabase.rpc('reiniciar_demo_escuelas');
+  const { error: resetError } = await supabase.rpc('reiniciar_demo_escuelas', { slugs: SLUGS_DEMO });
   if (resetError) throw new Error(`No se pudo reiniciar la demo: ${resetError.message}`);
 
   const ahora = Date.now();
   const haceIso = (dias: number) => new Date(ahora - dias * DIA_MS).toISOString();
   const nuevoId = () => crypto.randomUUID();
-  const idEquipo = (nombre: string) => equipo.find((m) => m.nombre === nombre)?.id ?? null;
+  // Si el owner de ejemplo no está en el equipo, queda el primer miembro.
+  const idEquipo = (nombre: string) => (equipo.find((m) => m.nombre === nombre) ?? equipo[0])?.id ?? null;
 
-  const escuelaIds = new Map(ESCUELAS_DEMO.map((e) => [e.slug, nuevoId()]));
+  const escuelasDemo = ESCUELAS_DEMO.filter((e) => esDemo(e.slug));
+  const escuelaIds = new Map(escuelasDemo.map((e) => [e.slug, nuevoId()]));
   const contactoIds = new Map<string, string>();
   const origenes = new Map<string, string>();
   const escuelaPorSlug = (slug: string): string => {
@@ -55,7 +64,7 @@ export async function cargarDatosDemo(equipo: Equipo[]): Promise<void> {
   const fichas: Fila[] = [];
   const salud: Fila[] = [];
 
-  for (const e of ESCUELAS_DEMO) {
+  for (const e of escuelasDemo) {
     const escuelaId = escuelaPorSlug(e.slug);
 
     escuelas.push({
@@ -102,6 +111,8 @@ export async function cargarDatosDemo(equipo: Equipo[]): Promise<void> {
         actualizado: haceIso(ultimaRespuesta?.hace ?? t.hace),
         // Demo: links con el formato de PostHog que no apuntan a grabaciones reales.
         grabacion_url: `https://us.posthog.com/replay/${ticketId}`,
+        // Los tickets de ejemplo no se publican en Slack (ver trigger slack_ticket_nuevo).
+        slack_ts: 'demo',
       });
       for (const r of t.respuestas ?? []) {
         mensajes.push({ id: nuevoId(), ticket_id: ticketId, autor: r.autor, cuerpo: r.cuerpo, fecha: haceIso(r.hace) });
@@ -153,6 +164,8 @@ export async function cargarDatosDemo(equipo: Equipo[]): Promise<void> {
           loop_id: item.loopId ?? null,
         })),
         ticket_id: null,
+        // Demo: link con el formato de Read AI que no apunta a una grabación real.
+        enlace: i.tipo === 'reunion' ? `https://app.read.ai/analytics/meetings/${id}` : null,
       });
     }
 
@@ -160,8 +173,9 @@ export async function cargarDatosDemo(equipo: Equipo[]): Promise<void> {
     salud.push(...healthDemo(e, escuelaId, nuevoId));
   }
 
-  const loopsConEstado = LOOPS_DEMO.map((l) => {
-    const issues = ISSUES_DEMO.filter((issue) => issue.loop === l.id);
+  const issuesDemo = ISSUES_DEMO.filter((i) => esDemo(i.escuela));
+  const loopsConEstado = LOOPS_DEMO.filter((l) => esDemo(l.escuela)).map((l) => {
+    const issues = issuesDemo.filter((issue) => issue.loop === l.id);
     const estado = issues.length === 0 ? 'Open' : estadoDerivadoLoop(issues);
     return { demo: l, issues, estado };
   });
@@ -197,8 +211,8 @@ export async function cargarDatosDemo(equipo: Equipo[]): Promise<void> {
     return historial;
   });
 
-  const issues: Fila[] = ISSUES_DEMO.map((i) => ({
-    id: i.id,
+  const issues: Fila[] = issuesDemo.map((i) => ({
+    id: `${PREFIJO_ISSUE_DEMO}${i.id}`,
     escuela_id: escuelaPorSlug(i.escuela),
     titulo: i.titulo,
     equipo: i.equipo,
@@ -211,9 +225,9 @@ export async function cargarDatosDemo(equipo: Equipo[]): Promise<void> {
 
   await insertar('escuelas', escuelas);
   await insertar('contactos', contactos);
-  await insertar('tickets', tickets, ['grabacion_url']);
+  await insertar('tickets', tickets, ['grabacion_url', 'slack_ts']);
   await insertar('ticket_mensajes', mensajes);
-  await insertar('interacciones', interacciones);
+  await insertar('interacciones', interacciones, ['enlace']);
   await insertar('loops', loops);
   await insertar('loop_estados', estados);
   await insertar('issues', issues, ['descripcion']);

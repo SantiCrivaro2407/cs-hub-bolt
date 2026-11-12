@@ -14,7 +14,7 @@ export type EstadoIntegracion = 'conectada' | 'error' | 'desconectada';
 export type EstadoTicket = 'Nuevo' | 'En curso' | 'Resuelto';
 export type EstadoLoop = 'Open' | 'Waiting' | 'Ready to reply' | 'Closed';
 export type OrigenLoop = 'email' | 'reunion' | 'ticket' | 'manual';
-export type EquipoIssue = 'CS' | 'Tech';
+export type EquipoIssue = 'CS' | 'Tech' | 'Product';
 export type EstadoIssue = 'Backlog' | 'Todo' | 'In Progress' | 'In Review' | 'Done' | 'Canceled';
 
 export interface Equipo {
@@ -38,6 +38,9 @@ export interface Escuela {
   owner_id: string | null;
   dominio_staff: string;
   ultimo_contacto: string | null;
+  // Nombres con los que aparece en los títulos de Linear (separados por coma). Sin alias, la escuela no se sincroniza.
+  linear_alias?: string | null;
+  linear_label?: string | null;
 }
 
 export interface Contacto {
@@ -136,6 +139,8 @@ export interface Interaccion {
   de?: string | null;
   para?: string[];
   enlace?: string | null;
+  // Conversación: `gmail:<threadId>` o `id:<interacción original>` (ver agruparEnHilos).
+  hilo?: string | null;
 }
 
 export interface Ticket {
@@ -150,6 +155,9 @@ export interface Ticket {
   actualizado: string;
   // Link a la grabación de PostHog de la sesión en la que se abrió el ticket.
   grabacion_url?: string | null;
+  // Mensaje del ticket en el canal de Slack (raíz del hilo); 'demo' en los tickets de ejemplo.
+  slack_ts?: string | null;
+  slack_url?: string | null;
 }
 
 export interface TicketMensaje {
@@ -172,8 +180,9 @@ export interface Loop {
   estado: EstadoLoop;
   creado: string;
   cerrado: string | null;
-  // Cada loop es una issue de Linear; si falta el link se arma con el id (ver urlLinear).
+  // Cada loop es una issue de Linear (equipo CS, label "Loop"); las de escuelas demo no tienen link.
   url?: string | null;
+  linear_uuid?: string | null;
 }
 
 export interface LoopEstado {
@@ -193,8 +202,9 @@ export interface Issue {
   actualizada: string;
   loop_id: string | null;
   descripcion?: string | null;
-  // Link directo a Linear; si falta se arma con el id (ver urlLinear).
+  // Link directo a Linear; las de escuelas demo no tienen.
   url?: string | null;
+  linear_uuid?: string | null;
 }
 
 export interface Integracion {
@@ -203,7 +213,8 @@ export interface Integracion {
   proveedor: ProveedorIntegracion;
   estado: EstadoIntegracion;
   cuenta: string | null;
-  config: { token?: string };
+  // Read AI: token del webhook. Gmail: envio = se otorgó el permiso para enviar.
+  config: { token?: string; envio?: boolean };
   ultima_sync: string | null;
   ultimo_error: string | null;
   creado: string;

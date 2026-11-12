@@ -18,7 +18,11 @@ export interface NuevaInteraccion {
   action_items?: ActionItem[];
   loop_id?: string | null;
   ticket_id?: string | null;
+  hilo?: string | null;
 }
+
+/** Error con un mensaje pensado para mostrarle al usuario tal cual (el resto se muestra como error genérico). */
+export class ErrorVisible extends Error {}
 
 export function comprobar(error: { message: string } | null): void {
   if (error) throw new Error(error.message);

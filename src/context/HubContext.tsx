@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { cargarHubData } from '@/lib/data/fetchHubData';
 import { supabase } from '@/lib/supabase';
 import { cargarDatosDemo } from '@/lib/demo/loadDemo';
-import type { Avisos, ContextoAccion } from '@/lib/actions/base';
+import { ErrorVisible, type Avisos, type ContextoAccion } from '@/lib/actions/base';
 import type { Equipo, HubData } from '@/lib/types';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
@@ -15,6 +15,8 @@ interface HubContextValue {
   ejecutar: (accion: () => Promise<Avisos>, exito: string) => Promise<boolean>;
   reiniciarDemo: () => Promise<boolean>;
 }
+
+const RECARGA_AUTOMATICA_MS = 2 * 60 * 1000;
 
 const HubContext = createContext<HubContextValue | null>(null);
 
@@ -46,6 +48,20 @@ export function HubProvider({ children }: { children: ReactNode }) {
       .then(refrescar);
   }, [refrescar]);
 
+  // Gmail y Read AI llegan por detrás (cron cada 15 min): se recargan los datos al volver a la pestaña
+  // y cada pocos minutos mientras está visible, para que lo nuevo aparezca sin apretar F5.
+  useEffect(() => {
+    const siVisible = () => {
+      if (document.visibilityState === 'visible') void refrescar();
+    };
+    const intervalo = window.setInterval(siVisible, RECARGA_AUTOMATICA_MS);
+    document.addEventListener('visibilitychange', siVisible);
+    return () => {
+      window.clearInterval(intervalo);
+      document.removeEventListener('visibilitychange', siVisible);
+    };
+  }, [refrescar]);
+
   // Misma regla que la base: primero la fila atada a esta cuenta, después una sin reclamar con este email.
   const yo =
     datos?.equipo.find((m) => userId !== null && m.user_id === userId) ??
@@ -64,7 +80,7 @@ export function HubProvider({ children }: { children: ReactNode }) {
         return true;
       } catch (e) {
         console.error(e);
-        mostrar(e instanceof Error && e.message.startsWith('Solo se puede') ? e.message : 'No se pudo guardar. Intentá de nuevo.', 'error');
+        mostrar(e instanceof ErrorVisible ? e.message : 'No se pudo guardar. Intentá de nuevo.', 'error');
         return false;
       }
     },

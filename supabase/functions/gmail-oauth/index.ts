@@ -4,7 +4,7 @@
 // Se despliega con --no-verify-jwt: la vuelta de Google no trae JWT; el state va firmado.
 import type { SupabaseClient } from 'jsr:@supabase/supabase-js@2';
 import { admin, CORS, env, json, miembroDesdeRequest } from '../_shared/comun.ts';
-import { canjearCodigo, firmarState, gmail, redirectUri, SCOPES_GMAIL, verificarState } from '../_shared/google.ts';
+import { canjearCodigo, firmarState, gmail, redirectUri, SCOPE_ENVIO, SCOPES_GMAIL, verificarState } from '../_shared/google.ts';
 
 async function nuevoNonce(db: SupabaseClient, equipoId: string): Promise<string> {
   // De paso se limpian los que nadie usó (el state vence a los 15 minutos).
@@ -71,7 +71,15 @@ Deno.serve(async (req) => {
     const { data: integracion, error } = await db
       .from('integraciones')
       .upsert(
-        { equipo_id: equipoId, proveedor: 'gmail', estado: 'conectada', cuenta: perfil.emailAddress.toLowerCase(), ultimo_error: null },
+        {
+          equipo_id: equipoId,
+          proveedor: 'gmail',
+          estado: 'conectada',
+          cuenta: perfil.emailAddress.toLowerCase(),
+          ultimo_error: null,
+          // Google deja destildar permisos en la pantalla de consentimiento: se guarda si el de envío quedó.
+          config: { envio: (tokens.scope ?? '').split(' ').includes(SCOPE_ENVIO) },
+        },
         { onConflict: 'equipo_id,proveedor' },
       )
       .select('id')

@@ -7,6 +7,7 @@ import { cambiarEstadoIssue } from '@/lib/actions/loops';
 import { rutaEscuela } from '@/lib/domain/cartera';
 import { diasEntre, fechaHora, hacePlural } from '@/lib/domain/dates';
 import { ESTADOS_ISSUE, urlLinear } from '@/lib/domain/loops';
+import { PREFIJO_ISSUE_DEMO } from '@/lib/demo/loadDemo';
 import type { Escuela, EstadoIssue, Issue, Loop } from '@/lib/types';
 
 function Dato({ etiqueta, children }: { etiqueta: string; children: React.ReactNode }) {
@@ -19,6 +20,8 @@ function Dato({ etiqueta, children }: { etiqueta: string; children: React.ReactN
 }
 
 export function BotonLinear({ item, compacto = false }: { item: Pick<Issue | Loop, 'id' | 'url'>; compacto?: boolean }) {
+  // Lo que viene de Linear siempre trae su link; lo de las escuelas de ejemplo no existe en Linear.
+  if (!item.url || item.id.startsWith(PREFIJO_ISSUE_DEMO)) return null;
   return (
     <a
       href={urlLinear(item)}

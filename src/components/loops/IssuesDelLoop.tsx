@@ -1,10 +1,12 @@
-import { useState, type FormEvent } from 'react';
+import { useState } from 'react';
+import { Plus } from 'lucide-react';
 import { BotonLinear } from '@/components/issues/IssueDetalle';
+import { NuevaIssuePanel } from '@/components/issues/NuevaIssuePanel';
 import { Boton } from '@/components/ui/Boton';
 import { Enlace } from '@/components/ui/Enlace';
 import { EstadoIssueBadge, Pill } from '@/components/ui/Insignias';
 import { useHub } from '@/context/HubContext';
-import { crearIssueTech, ligarIssue } from '@/lib/actions/loops';
+import { ligarIssue } from '@/lib/actions/loops';
 import type { Escuela, Issue, Loop } from '@/lib/types';
 import { issueResuelta } from '@/lib/domain/loops';
 import { rutaEscuela } from '@/lib/domain/cartera';
@@ -14,7 +16,7 @@ const campo = 'rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm tex
 export function IssuesDelLoop({ loop, escuela }: { loop: Loop; escuela: Escuela }) {
   const { datos, ctx, ejecutar } = useHub();
   const [issueId, setIssueId] = useState('');
-  const [tituloTech, setTituloTech] = useState('');
+  const [creando, setCreando] = useState(false);
   const ligadas = datos.issues.filter((i) => i.loop_id === loop.id);
   const libres = datos.issues.filter((i) => i.escuela_id === escuela.id && !i.loop_id);
   const issueElegida: Issue | undefined = libres.find((i) => i.id === issueId);
@@ -23,13 +25,6 @@ export function IssuesDelLoop({ loop, escuela }: { loop: Loop; escuela: Escuela 
     if (!issueElegida) return;
     const ok = await ejecutar(() => ligarIssue(ctx, loop, issueElegida), `Issue ${issueElegida.id} ligada al loop`);
     if (ok) setIssueId('');
-  };
-
-  const crearTech = async (e: FormEvent) => {
-    e.preventDefault();
-    if (tituloTech.trim() === '') return;
-    const ok = await ejecutar(() => crearIssueTech(ctx, loop, tituloTech.trim()), 'Issue creada en Tech');
-    if (ok) setTituloTech('');
   };
 
   return (
@@ -78,18 +73,15 @@ export function IssuesDelLoop({ loop, escuela }: { loop: Loop; escuela: Escuela 
             </Boton>
           </div>
         </div>
-        <form onSubmit={crearTech} className="flex min-w-0 flex-col gap-2 rounded-lg border border-slate-200 bg-white p-3">
-          <label className="text-xs font-medium text-slate-700" htmlFor={`tech-${loop.id}`}>
-            Crear issue en Tech
-          </label>
-          <div className="flex gap-2">
-            <input id={`tech-${loop.id}`} value={tituloTech} onChange={(e) => setTituloTech(e.target.value)} placeholder="Título de la issue" className={`${campo} min-w-0 flex-1`} />
-            <Boton type="submit" variante="secundario" disabled={tituloTech.trim() === ''}>
-              Crear
-            </Boton>
-          </div>
-        </form>
+        <div className="flex min-w-0 flex-col justify-between gap-2 rounded-lg border border-slate-200 bg-white p-3">
+          <p className="text-xs font-medium text-slate-700">Nueva sub-issue</p>
+          <Boton variante="secundario" onClick={() => setCreando(true)} className="w-fit">
+            <Plus className="h-4 w-4" aria-hidden />
+            Crear issue
+          </Boton>
+        </div>
       </div>
+      {creando && <NuevaIssuePanel escuela={escuela} loop={loop} onCerrar={() => setCreando(false)} />}
     </section>
   );
 }

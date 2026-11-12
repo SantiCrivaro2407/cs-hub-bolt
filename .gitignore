@@ -24,3 +24,8 @@ dist-ssr
 
 # Supabase CLI
 supabase/.temp
+supabase/seed.sql
+.env.bolt
+
+# Caché de compilación de TypeScript
+*.tsbuildinfo

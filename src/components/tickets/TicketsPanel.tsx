@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CrearLoopModal } from '@/components/loops/CrearLoopModal';
+import { CrearLoopPanel } from '@/components/loops/CrearLoopPanel';
 import { TicketDetalle } from '@/components/tickets/TicketDetalle';
 import { EditorEmail } from '@/components/ui/EditorEmail';
 import { useHub } from '@/context/HubContext';
@@ -178,10 +178,11 @@ export function TicketsPanel({ escuelaId }: { escuelaId?: string }) {
         />
       )}
       {ticket && escuelaDelTicket && accion === 'loop' && (
-        <CrearLoopModal
+        <CrearLoopPanel
           escuela={escuelaDelTicket}
           origen="ticket"
           origenInteraccionId={interaccionId}
+          ticketId={ticket.id}
           tituloInicial={ticket.asunto}
           onCerrar={() => setAccion(null)}
         />
