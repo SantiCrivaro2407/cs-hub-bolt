@@ -114,7 +114,10 @@ export async function cargarWhitelist(db: SupabaseClient): Promise<Map<string, C
   if (error) throw new Error(`No se pudieron leer los contactos: ${error.message}`);
   const emailsEquipo = (equipo.data ?? []).map((m) => String(m.email).trim().toLowerCase());
   const excluidos = new Set([...emailsEquipo, ...(cuentas.data ?? []).map((c) => String(c.cuenta).trim().toLowerCase())]);
-  const dominiosEquipo = new Set(emailsEquipo.map(dominioDe).filter(Boolean));
+  // Dominios internos del equipo, salvo los que además son de una escuela (por ejemplo itba.edu.ar: hay
+  // cuentas del ITBA en el equipo y a la vez el ITBA es una escuela cuyos mails hay que registrar).
+  const dominiosEscuelas = new Set((escuelas.data ?? []).flatMap((e) => dominiosDe(e.dominio_staff)));
+  const dominiosEquipo = new Set(emailsEquipo.map(dominioDe).filter((d) => d && !dominiosEscuelas.has(d)));
 
   const mapa = new Map<string, ContactoWhitelist[]>();
   for (const c of contactos.data ?? []) {
