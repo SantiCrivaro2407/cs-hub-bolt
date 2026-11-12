@@ -4,6 +4,7 @@ import { enviarEmail, type EnvioEmail } from '@/lib/actions/email';
 import { elegirAlAzar, generarTicketSimulado } from '@/lib/demo/simulacion';
 import type { Escuela, EstadoTicket, Ticket } from '@/lib/types';
 
+// El aviso a Slack lo hace la base (trigger slack_ticket_nuevo) cuando la integración está configurada.
 export async function crearTicketSimulado(ctx: ContextoAccion): Promise<Avisos> {
   const { datos } = ctx;
   const candidatos = datos.escuelas
@@ -40,7 +41,7 @@ export async function crearTicketSimulado(ctx: ContextoAccion): Promise<Avisos> 
     cuerpo: plantilla.mensaje,
     ticket_id: ticketId,
   });
-  return ['Aviso a Slack (simulado)'];
+  return [];
 }
 
 export async function responderTicket(
@@ -49,8 +50,8 @@ export async function responderTicket(
   escuela: Escuela,
   envio: EnvioEmail,
   marcarResuelto: boolean,
-): Promise<void> {
-  await enviarEmail(ctx, escuela, envio, { ticketId: ticket.id });
+): Promise<Avisos> {
+  const avisos = await enviarEmail(ctx, escuela, envio, { ticketId: ticket.id });
 
   const { error: errorMensaje } = await supabase.from('ticket_mensajes').insert({
     id: nuevoId(),
@@ -67,6 +68,7 @@ export async function responderTicket(
     .update({ estado, actualizado: new Date().toISOString() })
     .eq('id', ticket.id);
   comprobar(error);
+  return avisos;
 }
 
 export async function cambiarEstadoTicket(ctx: ContextoAccion, ticket: Ticket, estado: EstadoTicket): Promise<void> {

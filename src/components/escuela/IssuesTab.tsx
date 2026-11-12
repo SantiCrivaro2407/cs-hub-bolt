@@ -1,6 +1,9 @@
 import { useState } from 'react';
-import { Info } from 'lucide-react';
+import { Info, Plus } from 'lucide-react';
 import { BotonLinear, IssueDetalle } from '@/components/issues/IssueDetalle';
+import { NuevaIssuePanel } from '@/components/issues/NuevaIssuePanel';
+import { Boton } from '@/components/ui/Boton';
+import { escuelaEnLinear } from '@/lib/actions/linear';
 import { Enlace } from '@/components/ui/Enlace';
 import { useHub } from '@/context/HubContext';
 import { cambiarEstadoIssue } from '@/lib/actions/loops';
@@ -16,6 +19,7 @@ export function IssuesTab({ escuela }: { escuela: Escuela }) {
   const { datos, ctx, ejecutar } = useHub();
   const [equipo, setEquipo] = useState<EquipoIssue | ''>('');
   const [estado, setEstado] = useState<EstadoIssue | ''>('');
+  const [creando, setCreando] = useState(false);
   const { params } = useRuta();
   const abrir = (id: string | null) => navegar(urlConParams(`/escuelas/${escuela.slug}`, { issue: id }, params));
 
@@ -49,14 +53,19 @@ export function IssuesTab({ escuela }: { escuela: Escuela }) {
 
       <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
         <Info className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" aria-hidden />
-        <p className="text-sm text-slate-700">Sincronizado desde Linear (simulado) · tocá una issue para ver el detalle</p>
+        <p className="text-sm text-slate-700">
+          {escuelaEnLinear(escuela)
+            ? 'Espejo de Linear: lo que cambies acá se actualiza en Linear y viceversa · tocá una issue para ver el detalle'
+            : 'Escuela de ejemplo: estas issues viven solo en el hub · tocá una issue para ver el detalle'}
+        </p>
       </div>
 
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <select value={equipo} onChange={(e) => setEquipo(e.target.value as EquipoIssue | '')} className={campo} aria-label="Filtrar por equipo">
           <option value="">Todos los equipos</option>
           <option value="CS">CS</option>
           <option value="Tech">Tech</option>
+          <option value="Product">Product</option>
         </select>
         <select value={estado} onChange={(e) => setEstado(e.target.value as EstadoIssue | '')} className={campo} aria-label="Filtrar por estado">
           <option value="">Todos los estados</option>
@@ -66,6 +75,10 @@ export function IssuesTab({ escuela }: { escuela: Escuela }) {
             </option>
           ))}
         </select>
+        <Boton variante="primario" className="ml-auto" onClick={() => setCreando(true)}>
+          <Plus className="h-4 w-4" aria-hidden />
+          Nueva issue
+        </Boton>
       </div>
 
       {visibles.length === 0 ? (
@@ -135,6 +148,7 @@ export function IssuesTab({ escuela }: { escuela: Escuela }) {
       )}
 
       {abierta && <IssueDetalle issue={abierta} escuela={escuela} onCerrar={() => abrir(null)} />}
+      {creando && <NuevaIssuePanel escuela={escuela} onCerrar={() => setCreando(false)} />}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ExternalLink, PlayCircle } from 'lucide-react';
+import { ExternalLink, MessageSquare, PlayCircle } from 'lucide-react';
 import { Boton } from '@/components/ui/Boton';
 import { Enlace } from '@/components/ui/Enlace';
 import { EstadoTicketBadge } from '@/components/ui/Insignias';
@@ -10,7 +10,7 @@ import { cambiarEstadoTicket, cambiarOwnerTicket } from '@/lib/actions/tickets';
 import { rutaEscuela, etiquetaMiembro } from '@/lib/domain/cartera';
 import { diasEntre, fechaHora, hacePlural } from '@/lib/domain/dates';
 import { ticketVencido } from '@/lib/domain/loops';
-import { HOSTS_POSTHOG, urlSegura } from '@/lib/domain/urls';
+import { HOSTS_POSTHOG, HOSTS_SLACK, urlSegura } from '@/lib/domain/urls';
 import type { Escuela, EstadoTicket, HubData, Ticket } from '@/lib/types';
 
 const ESTADOS_TICKET: EstadoTicket[] = ['Nuevo', 'En curso', 'Resuelto'];
@@ -37,11 +37,15 @@ const sinPrefijos = (asunto: string) => asunto.replace(/^((re|rv|fw|fwd)\s*:\s*)
  */
 function conversacionTicket(datos: HubData, ticket: Ticket): MensajeConversacion[] {
   const asunto = sinPrefijos(ticket.asunto);
+  // Hilos de Gmail en los que ya se respondió este ticket: todo lo que llegue en ellos es parte de la conversación.
+  const hilos = new Set(datos.interacciones.filter((i) => i.ticket_id === ticket.id && i.hilo).map((i) => i.hilo));
   const emails = datos.interacciones.filter(
     (i) =>
       (i.tipo === 'email_enviado' || i.tipo === 'email_recibido') &&
       i.escuela_id === ticket.escuela_id &&
-      (i.ticket_id === ticket.id || (i.origen === 'gmail' && i.fecha >= ticket.creado && sinPrefijos(i.titulo).includes(asunto))),
+      (i.ticket_id === ticket.id ||
+        (!!i.hilo && hilos.has(i.hilo)) ||
+        (i.origen === 'gmail' && i.fecha >= ticket.creado && sinPrefijos(i.titulo).includes(asunto))),
   );
   const yaEnEmail = (autor: string, fecha: string) =>
     emails.some(
@@ -137,6 +141,7 @@ export function TicketDetalle({ ticket, escuela, onCerrar, onResponder, onCrearL
   const { datos, ctx, ejecutar } = useHub();
   const contacto = datos.contactos.find((c) => c.id === ticket.contacto_id);
   const conversacion = conversacionTicket(datos, ticket);
+  const hiloSlack = urlSegura(ticket.slack_url, HOSTS_SLACK);
   const ultimaRespuesta = conversacion.filter((m) => m.deEquipo).at(-1);
   const vencido = ticketVencido(ticket);
 
@@ -218,9 +223,17 @@ export function TicketDetalle({ ticket, escuela, onCerrar, onResponder, onCrearL
               Crear loop desde este ticket
             </Boton>
           </div>
-          <Enlace href={rutaEscuela(escuela, 'interacciones')} className="text-xs text-slate-600 underline">
-            Ver en interacciones
-          </Enlace>
+          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600">
+            {hiloSlack && (
+              <a href={hiloSlack} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 underline">
+                <MessageSquare className="h-3.5 w-3.5" aria-hidden />
+                Ver hilo en Slack
+              </a>
+            )}
+            <Enlace href={rutaEscuela(escuela, 'interacciones')} className="underline">
+              Ver en interacciones
+            </Enlace>
+          </div>
         </div>
       </div>
   );

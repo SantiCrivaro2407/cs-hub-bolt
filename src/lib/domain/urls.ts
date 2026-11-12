@@ -19,3 +19,4 @@ export function urlSegura(valor: string | null | undefined, hosts: string[]): st
 export const HOSTS_POSTHOG = ['posthog.com'];
 export const HOSTS_LINEAR = ['linear.app'];
 export const HOSTS_READAI = ['read.ai'];
+export const HOSTS_SLACK = ['slack.com'];

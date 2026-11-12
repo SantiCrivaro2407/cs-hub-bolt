@@ -20,12 +20,19 @@ interface ConsultaTabla {
   orden?: string;
 }
 
+// PostgREST devuelve como mucho 1000 filas por pedido: se lee de a páginas para no perder las más nuevas.
+const FILAS_POR_PAGINA = 1000;
+
 async function leerTabla<T>({ tabla, orden }: ConsultaTabla): Promise<T[]> {
-  let consulta = supabase.from(tabla).select('*');
-  if (orden) consulta = consulta.order(orden, { ascending: true });
-  const { data, error } = await consulta;
-  if (error) throw new Error(`No se pudo leer ${tabla}: ${error.message}`);
-  return (data ?? []) as T[];
+  const filas: T[] = [];
+  for (let desde = 0; ; desde += FILAS_POR_PAGINA) {
+    let consulta = supabase.from(tabla).select('*');
+    consulta = orden ? consulta.order(orden, { ascending: true }).order('id') : consulta.order('id');
+    const { data, error } = await consulta.range(desde, desde + FILAS_POR_PAGINA - 1);
+    if (error) throw new Error(`No se pudo leer ${tabla}: ${error.message}`);
+    filas.push(...((data ?? []) as T[]));
+    if (!data || data.length < FILAS_POR_PAGINA) return filas;
+  }
 }
 
 // Las integraciones llegan con una migración aparte: si la tabla todavía no existe, el backoffice sigue andando.

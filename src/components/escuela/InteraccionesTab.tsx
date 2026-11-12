@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Activity, RefreshCw } from 'lucide-react';
-import { InteraccionItem } from '@/components/escuela/InteraccionItem';
+import { HiloInteracciones } from '@/components/escuela/HiloInteracciones';
 import { NuevaNotaModal } from '@/components/escuela/NuevaNotaModal';
 import { Boton } from '@/components/ui/Boton';
 import { EditorEmail } from '@/components/ui/EditorEmail';
@@ -12,6 +12,8 @@ import { simularSincronizacion } from '@/lib/actions/escuelas';
 import { miIntegracion, sincronizarGmail } from '@/lib/actions/integraciones';
 import { rutaEscuela } from '@/lib/domain/cartera';
 import { claveMes, fechaHora, nombreMes } from '@/lib/domain/dates';
+import { useRuta } from '@/lib/router';
+import { agruparEnHilos, type Hilo } from '@/lib/domain/hilos';
 import { loopVencido, ordenarLoops } from '@/lib/domain/loops';
 import type { Escuela, Interaccion, TipoInteraccion } from '@/lib/types';
 
@@ -30,11 +32,12 @@ const FILTROS: FiltroInteraccion[] = [
   { clave: 'internos', texto: 'Registros internos', tipos: ['registro_interno'] },
 ];
 
-function agruparPorMes(interacciones: Interaccion[]): [string, Interaccion[]][] {
-  const grupos = new Map<string, Interaccion[]>();
-  for (const interaccion of interacciones) {
-    const clave = claveMes(interaccion.fecha);
-    grupos.set(clave, [...(grupos.get(clave) ?? []), interaccion]);
+// Cada conversación va en el mes de su último mensaje.
+function agruparPorMes(interacciones: Interaccion[]): [string, Hilo[]][] {
+  const grupos = new Map<string, Hilo[]>();
+  for (const hilo of agruparEnHilos(interacciones)) {
+    const clave = claveMes(hilo.ultimo.fecha);
+    grupos.set(clave, [...(grupos.get(clave) ?? []), hilo]);
   }
   return [...grupos.entries()];
 }
@@ -45,6 +48,9 @@ export function InteraccionesTab({ escuela }: { escuela: Escuela }) {
   const [sincronizando, setSincronizando] = useState(false);
   const [nota, setNota] = useState(false);
   const [nuevoEmail, setNuevoEmail] = useState(false);
+  // ?interaccion=<id>: abre esa reunión o conversación (link desde los pendientes).
+  const { params } = useRuta();
+  const abrirId = params.get('interaccion');
 
   const contactosConEmail = datos.contactos.filter((c) => c.escuela_id === escuela.id && c.email);
   const gmail = miIntegracion(ctx, 'gmail');
@@ -152,8 +158,8 @@ export function InteraccionesTab({ escuela }: { escuela: Escuela }) {
       {grupos.map(([mes, items]) => (
         <section key={mes} className="flex flex-col gap-3">
           <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500">{nombreMes(mes)}</h2>
-          {items.map((interaccion) => (
-            <InteraccionItem key={interaccion.id} interaccion={interaccion} escuela={escuela} />
+          {items.map((hilo) => (
+            <HiloInteracciones key={`${hilo.clave}:${abrirId ?? ''}`} hilo={hilo} escuela={escuela} abrirId={abrirId} />
           ))}
         </section>
       ))}

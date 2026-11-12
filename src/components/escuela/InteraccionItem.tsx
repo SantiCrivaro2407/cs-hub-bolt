@@ -1,15 +1,17 @@
 import { useState } from 'react';
-import { CalendarDays, Mail, MailOpen, NotebookPen, Ticket } from 'lucide-react';
+import { CalendarDays, ChevronRight, Mail, MailOpen, NotebookPen, PlayCircle, Ticket } from 'lucide-react';
 import { Boton } from '@/components/ui/Boton';
 import { EditorEmail } from '@/components/ui/EditorEmail';
 import { Enlace } from '@/components/ui/Enlace';
 import { Pill } from '@/components/ui/Insignias';
-import { CrearLoopModal } from '@/components/loops/CrearLoopModal';
+import { CrearLoopPanel } from '@/components/loops/CrearLoopPanel';
+import { InteraccionDetalle } from '@/components/escuela/InteraccionDetalle';
 import { useHub } from '@/context/HubContext';
 import { enviarEmail } from '@/lib/actions/email';
-import { horaMinuto } from '@/lib/domain/dates';
+import { fechaHora, horaMinuto } from '@/lib/domain/dates';
 import { rutaEscuela } from '@/lib/domain/cartera';
 import { HOSTS_READAI, urlSegura } from '@/lib/domain/urls';
+import { emailEsDeStaff } from '@/lib/domain/email';
 import type { Escuela, Interaccion, TipoInteraccion } from '@/lib/types';
 
 const ETIQUETA_TIPO: Record<TipoInteraccion, string> = {
@@ -32,7 +34,19 @@ const ICONO_TIPO = {
 
 type Accion = { tipo: 'responder' } | { tipo: 'loop'; actionItemId?: string; tituloInicial: string } | null;
 
-export function InteraccionItem({ interaccion, escuela }: { interaccion: Interaccion; escuela: Escuela }) {
+interface Props {
+  interaccion: Interaccion;
+  escuela: Escuela;
+  /** Dentro de un hilo: sin borde propio y con el asunto solo en el primer mensaje. */
+  enHilo?: boolean;
+  mostrarTitulo?: boolean;
+  /** En un hilo, Responder / Crear loop van solo en el último mensaje recibido. */
+  conAcciones?: boolean;
+  /** Abre el detalle al montar (link directo desde un pendiente). */
+  detalleInicial?: boolean;
+}
+
+export function InteraccionItem({ interaccion, escuela, enHilo = false, mostrarTitulo = true, conAcciones = true, detalleInicial = false }: Props) {
   const { datos, ctx, ejecutar } = useHub();
   const [accion, setAccion] = useState<Accion>(null);
   const Icono = ICONO_TIPO[interaccion.tipo];
@@ -40,11 +54,22 @@ export function InteraccionItem({ interaccion, escuela }: { interaccion: Interac
   const contactoAutor = contactosEscuela.find((c) => c.nombre === interaccion.autor);
   const interno = interaccion.tipo === 'registro_interno';
   const enlaceReadAI = urlSegura(interaccion.enlace, HOSTS_READAI);
-  const [expandido, setExpandido] = useState(false);
-  const largo = interaccion.cuerpo.length > 600;
+  const [detalle, setDetalle] = useState(detalleInicial);
+  // Se responde al remitente si es del staff de la escuela (emails traídos de Gmail); si no, a los contactos.
+  const remitente = interaccion.de?.match(/[^\s<>"]+@[^\s<>"]+/)?.[0]?.toLowerCase();
+  const paraRespuesta =
+    remitente && emailEsDeStaff(remitente, escuela.dominio_staff)
+      ? [remitente]
+      : contactoAutor?.email
+        ? [contactoAutor.email]
+        : contactosEscuela.map((c) => c.email as string);
+  const abrirAccion = (nueva: Accion) => {
+    setDetalle(false);
+    setAccion(nueva);
+  };
 
   return (
-    <article className={`flex gap-4 rounded-xl border border-slate-200 p-4 ${interno ? 'bg-slate-50' : 'bg-white'}`}>
+    <article className={enHilo ? 'flex gap-4 py-4' : `flex gap-4 rounded-xl border border-slate-200 p-4 ${interno ? 'bg-slate-50' : 'bg-white'}`}>
       <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${interno ? 'bg-slate-200 text-slate-600' : 'bg-slate-900 text-white'}`}>
         <Icono className="h-4 w-4" aria-hidden />
       </div>
@@ -52,12 +77,22 @@ export function InteraccionItem({ interaccion, escuela }: { interaccion: Interac
         <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
           <Pill tono={interno ? 'neutro' : 'azul'}>{ETIQUETA_TIPO[interaccion.tipo]}</Pill>
           <span>
-            {interaccion.autor} · {horaMinuto(interaccion.fecha)}
+            {interaccion.autor} · {enHilo ? fechaHora(interaccion.fecha) : horaMinuto(interaccion.fecha)}
           </span>
           {interaccion.duracion_min !== null && <span>· {interaccion.duracion_min} min</span>}
           {interaccion.origen && interaccion.origen !== 'manual' && <Pill>{interaccion.origen === 'gmail' ? 'Gmail' : 'Read AI'}</Pill>}
         </div>
-        <h3 className={`text-sm font-medium ${interno ? 'text-slate-600' : 'text-slate-900'}`}>{interaccion.titulo}</h3>
+        {mostrarTitulo ? (
+          <button onClick={() => setDetalle(true)} className="group flex items-start justify-between gap-2 text-left" aria-label={`Ver detalle: ${interaccion.titulo}`}>
+            <h3 className={`text-sm font-medium group-hover:underline ${interno ? 'text-slate-600' : 'text-slate-900'}`}>{interaccion.titulo}</h3>
+            <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground group-hover:text-foreground" aria-hidden />
+          </button>
+        ) : (
+          <button onClick={() => setDetalle(true)} className="inline-flex w-fit items-center gap-1 text-xs text-muted-foreground hover:text-foreground hover:underline" aria-label={`Ver detalle: ${interaccion.titulo}`}>
+            Ver detalle
+            <ChevronRight className="h-3.5 w-3.5" aria-hidden />
+          </button>
+        )}
         {(interaccion.de || (interaccion.para?.length ?? 0) > 0) && (
           <p className="text-xs text-muted-foreground">
             {interaccion.de && <>De: {interaccion.de}</>}
@@ -65,19 +100,11 @@ export function InteraccionItem({ interaccion, escuela }: { interaccion: Interac
             {(interaccion.para?.length ?? 0) > 0 && <>{interaccion.tipo === 'reunion' ? 'Participantes' : 'Para'}: {interaccion.para?.join(', ')}</>}
           </p>
         )}
-        {interaccion.cuerpo && (
-          <div>
-            <p className={`whitespace-pre-line text-sm leading-relaxed text-slate-700 ${largo && !expandido ? 'line-clamp-6' : ''}`}>{interaccion.cuerpo}</p>
-            {largo && (
-              <button onClick={() => setExpandido(!expandido)} className="mt-1 text-xs font-medium text-muted-foreground hover:text-foreground">
-                {expandido ? 'Ver menos' : 'Ver email completo'}
-              </button>
-            )}
-          </div>
-        )}
+        {interaccion.cuerpo && <p className="line-clamp-3 whitespace-pre-line text-sm leading-relaxed text-slate-700">{interaccion.cuerpo}</p>}
         {enlaceReadAI && (
-          <a href={enlaceReadAI} target="_blank" rel="noreferrer" className="w-fit text-sm font-medium underline underline-offset-2">
-            Ver reporte en Read AI
+          <a href={enlaceReadAI} target="_blank" rel="noreferrer" className="inline-flex w-fit items-center gap-1.5 text-sm font-medium underline underline-offset-2">
+            <PlayCircle className="h-4 w-4" aria-hidden />
+            Ver grabación en Read AI
           </a>
         )}
 
@@ -100,7 +127,7 @@ export function InteraccionItem({ interaccion, escuela }: { interaccion: Interac
           </ul>
         )}
 
-        {(interaccion.tipo === 'email_recibido' || interaccion.tipo === 'ticket') && (
+        {conAcciones && (interaccion.tipo === 'email_recibido' || interaccion.tipo === 'ticket') && (
           <div className="flex flex-wrap gap-2 pt-1">
             {interaccion.tipo === 'email_recibido' && (
               <>
@@ -121,28 +148,42 @@ export function InteraccionItem({ interaccion, escuela }: { interaccion: Interac
         )}
       </div>
 
+      {detalle && (
+        <InteraccionDetalle
+          interaccion={interaccion}
+          escuela={escuela}
+          etiquetaTipo={ETIQUETA_TIPO[interaccion.tipo]}
+          enlaceReadAI={enlaceReadAI}
+          onCerrar={() => setDetalle(false)}
+          onResponder={interaccion.tipo === 'email_recibido' ? () => abrirAccion({ tipo: 'responder' }) : undefined}
+          onCrearLoop={(item) =>
+            abrirAccion(item ? { tipo: 'loop', actionItemId: item.id, tituloInicial: item.texto } : { tipo: 'loop', tituloInicial: interaccion.titulo })
+          }
+        />
+      )}
       {accion?.tipo === 'responder' && (
         <EditorEmail
           titulo={`Responder · ${interaccion.titulo}`}
           inicial={{
             asunto: `Re: ${interaccion.titulo}`,
-            para: contactoAutor?.email ? [contactoAutor.email] : contactosEscuela.map((c) => c.email as string),
+            para: paraRespuesta,
             cuerpo: '',
           }}
           paraEditable={false}
           textoBoton="Enviar email"
           citado={{ autor: interaccion.autor, fecha: interaccion.fecha, cuerpo: interaccion.cuerpo }}
-          onEnviar={(envio) => ejecutar(() => enviarEmail(ctx, escuela, envio, { loopId: interaccion.loop_id }), 'Email enviado')}
+          onEnviar={(envio) => ejecutar(() => enviarEmail(ctx, escuela, envio, { loopId: interaccion.loop_id, respondeA: interaccion.id }), 'Email enviado')}
           onCerrar={() => setAccion(null)}
         />
       )}
       {accion?.tipo === 'loop' && (
-        <CrearLoopModal
+        <CrearLoopPanel
           escuela={escuela}
-          origen={interaccion.tipo === 'reunion' ? 'reunion' : 'email'}
+          origen={interaccion.tipo === 'reunion' ? 'reunion' : interaccion.tipo === 'ticket' ? 'ticket' : 'email'}
           origenInteraccionId={interaccion.id}
+          ticketId={interaccion.ticket_id ?? undefined}
           tituloInicial={accion.tituloInicial}
-          actionItemId={accion.actionItemId}
+          actionItem={accion.actionItemId ? { id: accion.actionItemId, texto: accion.tituloInicial } : undefined}
           onCerrar={() => setAccion(null)}
         />
       )}

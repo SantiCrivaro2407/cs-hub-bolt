@@ -1,11 +1,13 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { CalendarDays, Check, Copy, Mail, RefreshCw, ShieldCheck } from 'lucide-react';
+import { CalendarDays, Check, Copy, GitBranch, Hash, Mail, RefreshCw, ShieldCheck } from 'lucide-react';
 import { Boton } from '@/components/ui/Boton';
 import { Pill } from '@/components/ui/Insignias';
 import { useHub } from '@/context/HubContext';
 import { useToast } from '@/context/ToastContext';
 import { conectarGmail, conectarReadAI, desconectar, miIntegracion, sincronizarGmail, urlWebhookReadAI } from '@/lib/actions/integraciones';
 import { fechaHora } from '@/lib/domain/dates';
+import { sincronizarLinear } from '@/lib/actions/linear';
+import { supabase } from '@/lib/supabase';
 import { navegar, useRuta } from '@/lib/router';
 import type { Integracion, ProveedorIntegracion } from '@/lib/types';
 
@@ -113,13 +115,15 @@ export function IntegracionesPage() {
   const readai = miIntegracion(ctx, 'readai');
   const contactos = datos.contactos.filter((c) => c.email);
   const escuelasConContactos = new Set(contactos.map((c) => c.escuela_id)).size;
+  // Slack lo configura tecnología para todo el equipo: si hay tickets publicados, está andando.
+  const publicadosEnSlack = datos.tickets.filter((t) => t.slack_url).sort((a, b) => b.creado.localeCompare(a.creado));
 
   // Vuelta del consentimiento de Google (?gmail=ok | error&detalle=...).
   const resultadoGmail = params.get('gmail');
   const detalleGmail = params.get('detalle');
   useEffect(() => {
     if (!resultadoGmail) return;
-    if (resultadoGmail === 'ok') mostrar('Gmail conectado. La primera sincronización trae los últimos 30 días.');
+    if (resultadoGmail === 'ok') mostrar('Gmail conectado. La primera sincronización trae los últimos 12 meses.');
     else mostrar(MOTIVOS_ERROR[detalleGmail ?? ''] ?? 'No se pudo conectar Gmail.', 'error');
     navegar('/integraciones', { reemplazar: true });
   }, [resultadoGmail, detalleGmail, mostrar]);
@@ -140,6 +144,28 @@ export function IntegracionesPage() {
       } catch (e) {
         mostrar(e instanceof Error ? e.message : 'No se pudo conectar Gmail.', 'error');
       }
+    });
+
+  // Estado de la sincronización con Linear (para todo el equipo).
+  const [linearSync, setLinearSync] = useState<{ ultima_sync: string | null; ultimo_error: string | null } | null>(null);
+  const escuelasEnLinear = datos.escuelas.filter((e) => e.linear_alias).length;
+  const enLinear = { loops: datos.loops.filter((l) => l.linear_uuid).length, issues: datos.issues.filter((i) => i.url).length };
+  const leerLinearSync = () =>
+    supabase
+      .from('linear_sync')
+      .select('ultima_sync, ultimo_error')
+      .maybeSingle()
+      .then(({ data }) => setLinearSync(data));
+  useEffect(() => {
+    void leerLinearSync();
+  }, []);
+  const sincronizarConLinear = () =>
+    conCarga('linear', async () => {
+      await ejecutar(async () => {
+        const r = await sincronizarLinear();
+        await leerLinearSync();
+        return [`${r.revisadas} cambios revisados en Linear`];
+      }, 'Linear sincronizado');
     });
 
   const sincronizar = () =>
@@ -169,17 +195,24 @@ export function IntegracionesPage() {
       <TarjetaIntegracion
         icono={<Mail className="h-5 w-5" />}
         titulo="Gmail"
-        descripcion="Acceso de solo lectura. Registra los emails enviados y recibidos con contactos de clientes: asunto, cuerpo completo, remitente y destinatarios."
+        descripcion="Registra los emails enviados y recibidos con contactos de clientes (la primera vez, los últimos 12 meses; después cada 15 minutos) y te deja responder desde el hub con tu casilla."
         integracion={gmail}
       >
+        {gmail && gmail.estado !== 'error' && !gmail.config.envio && (
+          <p className="text-sm text-triage-watch-fg">
+            Falta el permiso para enviar: reconectá Gmail y aceptá "Enviar correo electrónico en tu nombre". Mientras tanto, las respuestas se registran en el
+            hub pero no salen.
+          </p>
+        )}
         <div className="flex flex-wrap gap-2">
-          {!gmail || gmail.estado === 'error' ? (
+          {(!gmail || gmail.estado === 'error' || !gmail.config.envio) && (
             <Boton variante="primario" onClick={iniciarGmail} disabled={ocupado === 'gmail'}>
               <Mail className="h-4 w-4" />
               {gmail ? 'Reconectar Gmail' : 'Conectar Gmail'}
             </Boton>
-          ) : (
-            <Boton variante="primario" onClick={sincronizar} disabled={ocupado === 'sync'}>
+          )}
+          {gmail && gmail.estado !== 'error' && (
+            <Boton variante={gmail.config.envio ? 'primario' : 'secundario'} onClick={sincronizar} disabled={ocupado === 'sync'}>
               <RefreshCw className={`h-4 w-4 ${ocupado === 'sync' ? 'animate-spin' : ''}`} />
               Sincronizar ahora
             </Boton>
@@ -219,6 +252,66 @@ export function IntegracionesPage() {
           </div>
         )}
       </TarjetaIntegracion>
+
+      <section className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground">
+              <GitBranch className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-base">Linear</h2>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                Loops e issues son un espejo de Linear: lo que se crea o cambia en el hub va a Linear, y lo de Linear llega al hub al instante (webhook)
+                o en la sincronización de cada 15 minutos. Un loop es una issue de CS con el label Loop; sus sub-issues son las issues ligadas.
+              </p>
+            </div>
+          </div>
+          {linearSync?.ultimo_error ? (
+            <Pill tono="rojo">Revisar conexión</Pill>
+          ) : linearSync?.ultima_sync ? (
+            <Pill tono="verde">Sincronizado</Pill>
+          ) : (
+            <Pill>Sin sincronizar todavía</Pill>
+          )}
+        </div>
+        <p className="text-sm text-muted-foreground">
+          {escuelasEnLinear} {escuelasEnLinear === 1 ? 'escuela conectada' : 'escuelas conectadas'} · {enLinear.loops} loops y {enLinear.issues} issues de
+          Linear
+          {linearSync?.ultima_sync && <> · última sincronización {fechaHora(linearSync.ultima_sync)}</>}
+        </p>
+        {linearSync?.ultimo_error && <p className="text-sm text-destructive">{linearSync.ultimo_error}</p>}
+        <div>
+          <Boton variante="secundario" onClick={sincronizarConLinear} disabled={ocupado === 'linear'}>
+            <RefreshCw className={`h-4 w-4 ${ocupado === 'linear' ? 'animate-spin' : ''}`} aria-hidden />
+            {ocupado === 'linear' ? 'Sincronizando…' : 'Sincronizar ahora'}
+          </Boton>
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground">
+              <Hash className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-base">Slack</h2>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                Cada ticket nuevo se publica en el canal del equipo con escuela, contacto y asunto. Las respuestas y cuando se resuelve van en el hilo
+                del ticket. Es para todo el equipo; lo configura tecnología.
+              </p>
+            </div>
+          </div>
+          {publicadosEnSlack.length > 0 ? <Pill tono="verde">Activo</Pill> : <Pill>Sin avisos todavía</Pill>}
+        </div>
+        {publicadosEnSlack.length > 0 && (
+          <p className="text-sm text-muted-foreground">
+            {publicadosEnSlack.length} {publicadosEnSlack.length === 1 ? 'ticket publicado' : 'tickets publicados'} · último{' '}
+            {fechaHora(publicadosEnSlack[0].creado)}
+          </p>
+        )}
+      </section>
 
       <section className="overflow-hidden rounded-2xl border border-border bg-card">
         <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] gap-3 border-b border-border bg-muted/40 px-4 py-2.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">

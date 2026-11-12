@@ -10,17 +10,22 @@ import {
   env,
   escuelasDe,
   extraerEmails,
+  esDominio,
   guardarInteracciones,
   json,
   miembroDesdeRequest,
+  secretoValido,
   type ContactoWhitelist,
   type FilaInteraccion,
 } from '../_shared/comun.ts';
 import { accessTokenDesdeRefresh, ErrorGoogle, gmail } from '../_shared/google.ts';
 
-const DIAS_PRIMERA_SYNC = 30;
+const DIAS_PRIMERA_SYNC = 365; // la primera sync trae los últimos 12 meses
 const EMAILS_POR_CONSULTA = 20; // cada email suma 3 términos (from/to/cc) a la búsqueda de Gmail
-const MAX_MENSAJES_POR_CONSULTA = 500;
+const MAX_MENSAJES_POR_CONSULTA = 2000;
+// Margen antes del límite de tiempo de la Edge Function: lo que no entra se trae en la próxima corrida.
+const TIEMPO_MAXIMO_MS = 100_000;
+const MENSAJES_POR_TANDA = 25;
 const MAX_CUERPO = 50_000;
 
 interface Integracion {
@@ -89,10 +94,12 @@ function trozos<T>(lista: T[], tamano: number): T[][] {
   return Array.from({ length: Math.ceil(lista.length / tamano) }, (_, i) => lista.slice(i * tamano, (i + 1) * tamano));
 }
 
-async function idsDeMensajes(token: string, emails: string[], desde: Date): Promise<string[]> {
+async function idsDeMensajes(token: string, claves: string[], desde: Date): Promise<string[]> {
   const ids = new Set<string>();
   const despues = Math.floor(desde.getTime() / 1000);
-  for (const grupo of trozos(emails, EMAILS_POR_CONSULTA)) {
+  // Cada dominio va en su propia búsqueda (puede traer muchos mensajes); los emails sueltos, de a 20.
+  const grupos = [...claves.filter(esDominio).map((d) => [d.slice(1)]), ...trozos(claves.filter((c) => !esDominio(c)), EMAILS_POR_CONSULTA)];
+  for (const grupo of grupos) {
     const terminos = grupo.flatMap((e) => [`from:${e}`, `to:${e}`, `cc:${e}`]).join(' ');
     let pagina: string | undefined;
     let vistos = 0;
@@ -138,7 +145,25 @@ function filasDeMensaje(mensaje: MensajeGmail, cuenta: string, whitelist: Map<st
     externo_id: mensaje.id,
     de: from || null,
     para,
+    hilo: `gmail:${mensaje.threadId}`,
   }));
+}
+
+const HILOS_POR_CORRIDA = 150;
+
+/** Completa el hilo de los emails guardados antes de que existiera la columna (de a tandas, sin pasarse de tiempo). */
+async function completarHilos(db: SupabaseClient, token: string, inicio: Date): Promise<void> {
+  const { data } = await db.from('interacciones').select('externo_id').eq('origen', 'gmail').is('hilo', null).not('externo_id', 'is', null).limit(HILOS_POR_CORRIDA);
+  const ids = [...new Set((data ?? []).map((f) => f.externo_id as string))];
+  for (const tanda of trozos(ids, MENSAJES_POR_TANDA)) {
+    if (Date.now() - inicio.getTime() > TIEMPO_MAXIMO_MS) return;
+    const mensajes = await enParalelo(tanda, 3, (id) =>
+      gmail<{ id: string; threadId: string }>(token, `messages/${id}`, { format: 'minimal' }).catch(() => null),
+    );
+    for (const m of mensajes) {
+      if (m) await db.from('interacciones').update({ hilo: `gmail:${m.threadId}` }).eq('origen', 'gmail').eq('externo_id', m.id);
+    }
+  }
 }
 
 async function sincronizar(db: SupabaseClient, integracion: Integracion, whitelist: Map<string, ContactoWhitelist[]>) {
@@ -158,12 +183,33 @@ async function sincronizar(db: SupabaseClient, integracion: Integracion, whiteli
       : new Date(Date.now() - DIAS_PRIMERA_SYNC * 24 * 60 * 60 * 1000);
 
     const ids = await idsDeMensajes(token, [...whitelist.keys()], desde);
-    const mensajes = await enParalelo(ids, 5, (id) => gmail<MensajeGmail>(token, `messages/${id}`, { format: 'full' }));
-    const filas = mensajes.flatMap((m) => filasDeMensaje(m, cuenta, whitelist));
-    const nuevas = await guardarInteracciones(db, filas);
 
-    await db.from('integraciones').update({ estado: 'conectada', ultima_sync: inicio.toISOString(), ultimo_error: null }).eq('id', integracion.id);
-    return { integracion: integracion.id, revisados: ids.length, nuevas };
+    // Solo se descargan los que todavía no están guardados.
+    const guardados = new Set<string>();
+    for (const tanda of trozos(ids, 200)) {
+      const { data } = await db.from('interacciones').select('externo_id').eq('origen', 'gmail').in('externo_id', tanda);
+      for (const fila of data ?? []) guardados.add(fila.externo_id);
+    }
+    const pendientes = ids.filter((id) => !guardados.has(id));
+
+    // De a tandas, guardando cada una: si se acaba el tiempo, la próxima corrida sigue desde ahí.
+    let nuevas = 0;
+    let procesados = 0;
+    for (const tanda of trozos(pendientes, MENSAJES_POR_TANDA)) {
+      if (Date.now() - inicio.getTime() > TIEMPO_MAXIMO_MS) break;
+      const mensajes = await enParalelo(tanda, 3, (id) => gmail<MensajeGmail>(token, `messages/${id}`, { format: 'full' }));
+      nuevas += await guardarInteracciones(db, mensajes.flatMap((m) => filasDeMensaje(m, cuenta, whitelist)));
+      procesados += tanda.length;
+    }
+    const completa = procesados === pendientes.length;
+    await completarHilos(db, token, inicio);
+
+    // ultima_sync solo avanza cuando se trajo todo; si no, la ventana se repite y se saltean los ya guardados.
+    await db
+      .from('integraciones')
+      .update({ estado: 'conectada', ultimo_error: null, ...(completa ? { ultima_sync: inicio.toISOString() } : {}) })
+      .eq('id', integracion.id);
+    return { integracion: integracion.id, revisados: ids.length, nuevas, pendientes: pendientes.length - procesados };
   } catch (e) {
     const revocado = e instanceof ErrorGoogle && e.codigo === 'invalid_grant';
     const mensaje = revocado ? 'Google revocó el acceso: hay que reconectar Gmail' : String(e instanceof Error ? e.message : e).slice(0, 300);
@@ -179,7 +225,7 @@ Deno.serve(async (req) => {
   const db = admin();
 
   let consulta = db.from('integraciones').select('id, equipo_id, cuenta, ultima_sync').eq('proveedor', 'gmail').neq('estado', 'desconectada');
-  const esCron = req.headers.get('x-cron-secret') === env('CRON_SECRET');
+  const esCron = secretoValido(req.headers.get('x-cron-secret'), env('CRON_SECRET'));
   if (!esCron) {
     const miembro = await miembroDesdeRequest(db, req);
     if (!miembro) return json({ error: 'Tu cuenta no está en el equipo de CS.' }, 401);

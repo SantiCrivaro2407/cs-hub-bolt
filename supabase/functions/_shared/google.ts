@@ -1,6 +1,8 @@
 import { env } from './comun.ts';
 
-export const SCOPES_GMAIL = ['https://www.googleapis.com/auth/gmail.readonly'];
+export const SCOPE_LECTURA = 'https://www.googleapis.com/auth/gmail.readonly';
+export const SCOPE_ENVIO = 'https://www.googleapis.com/auth/gmail.send';
+export const SCOPES_GMAIL = [SCOPE_LECTURA, SCOPE_ENVIO];
 
 /** El callback de OAuth es la propia función gmail-oauth. Debe estar cargado igual en Google Cloud. */
 export function redirectUri(): string {
@@ -11,6 +13,7 @@ interface RespuestaToken {
   access_token: string;
   refresh_token?: string;
   expires_in: number;
+  scope?: string;
 }
 
 async function pedirToken(parametros: Record<string, string>): Promise<RespuestaToken> {
@@ -41,13 +44,25 @@ export async function accessTokenDesdeRefresh(refreshToken: string): Promise<str
   return (await pedirToken({ grant_type: 'refresh_token', refresh_token: refreshToken })).access_token;
 }
 
-export async function gmail<T>(accessToken: string, ruta: string, params: Record<string, string> = {}): Promise<T> {
+export async function gmail<T>(accessToken: string, ruta: string, params: Record<string, string> = {}, cuerpo?: unknown): Promise<T> {
   const url = new URL(`https://gmail.googleapis.com/gmail/v1/users/me/${ruta}`);
   for (const [clave, valor] of Object.entries(params)) url.searchParams.set(clave, valor);
-  const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
-  if (!res.ok) throw new ErrorGoogle(`gmail_${res.status}`, await res.text());
-  return res.json();
+  // Gmail limita las unidades por minuto por usuario: ante 429 o 403 por cuota se reintenta con espera creciente.
+  for (let intento = 0; ; intento++) {
+    const res = await fetch(url, {
+      method: cuerpo === undefined ? 'GET' : 'POST',
+      headers: { Authorization: `Bearer ${accessToken}`, ...(cuerpo === undefined ? {} : { 'Content-Type': 'application/json' }) },
+      body: cuerpo === undefined ? undefined : JSON.stringify(cuerpo),
+    });
+    if (res.ok) return res.json();
+    const texto = await res.text();
+    const porCuota = res.status === 429 || (res.status === 403 && /quota|rateLimit/i.test(texto));
+    if (!porCuota || intento >= REINTENTOS_CUOTA) throw new ErrorGoogle(`gmail_${res.status}`, texto);
+    await new Promise((r) => setTimeout(r, 2000 * 2 ** intento));
+  }
 }
+
+const REINTENTOS_CUOTA = 4;
 
 // --- state firmado para el ida y vuelta de OAuth (sin sesión de por medio) ---
 

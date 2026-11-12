@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
-import { CrearLoopModal } from '@/components/loops/CrearLoopModal';
+import { CrearLoopPanel } from '@/components/loops/CrearLoopPanel';
 import { LoopDetalle } from '@/components/loops/LoopDetalle';
 import { Boton } from '@/components/ui/Boton';
 import { EstadoLoopBadge, Pill } from '@/components/ui/Insignias';
@@ -77,7 +77,7 @@ export function LoopsTab({ escuela }: { escuela: Escuela }) {
         })}
       </ul>
 
-      {creando && <CrearLoopModal escuela={escuela} origen="manual" onCerrar={() => setCreando(false)} />}
+      {creando && <CrearLoopPanel escuela={escuela} origen="manual" onCerrar={() => setCreando(false)} />}
     </div>
   );
 }

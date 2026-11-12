@@ -60,13 +60,13 @@ export function siguienteIdLoop(codigoEscuela: string, idsExistentes: string[]):
   return `${prefijo}${String(siguiente).padStart(2, '0')}`;
 }
 
-export function siguienteIdIssue(prefijo: 'CS' | 'TECH', issues: Pick<Issue, 'id'>[]): string {
+export function siguienteIdIssue(prefijo: string, issues: Pick<Issue, 'id'>[]): string {
   const cabecera = `${prefijo}-`;
   const numeros = issues
     .filter((issue) => issue.id.startsWith(cabecera))
     .map((issue) => Number(issue.id.slice(cabecera.length)))
     .filter((n) => !Number.isNaN(n));
-  const base = prefijo === 'CS' ? 180 : 1800;
+  const base = prefijo === 'TECH' ? 1800 : 180;
   const siguiente = Math.max(base, ...numeros) + 1;
   return `${cabecera}${siguiente}`;
 }
